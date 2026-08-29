@@ -1,0 +1,22 @@
+{
+  "name": "@megagrid/grid",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@megagrid/core": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,189 @@
+:root {
+  color-scheme: dark;
+  --bg: #07090d;
+  --panel: #0e1218;
+  --line: #1c2430;
+  --text: #e8eef6;
+  --muted: #8b97a8;
+  --accent: #4c9fff;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef2f6;
+  --panel: #ffffff;
+  --line: #d5dee8;
+  --text: #152033;
+  --muted: #5d6b80;
+  --accent: #2563eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.pg {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 64px 1fr;
+  grid-template-areas:
+    "top top"
+    "side main";
+}
+
+.pg-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.pg-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pg-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #4c9fff, #7c5cfc);
+  color: white;
+}
+
+.pg-name {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-size: 16px;
+}
+
+.pg-tag {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pg-metrics {
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+  font: 12px/1 "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.pg-metrics span {
+  padding: 4px 0;
+}
+
+.pg-side {
+  grid-area: side;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+  padding: 16px;
+  overflow: auto;
+}
+
+.pg-side h2 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pg-side section + section {
+  margin-top: 22px;
+}
+
+.pg-copy {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0 0 10px;
+}
+
+.pg-legend {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pg-legend b {
+  color: var(--text);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.pg-seg,
+.pg-actions,
+.pg-queries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pg-seg button,
+.pg-actions button,
+.pg-queries button {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  border-radius: 7px;
+  padding: 6px 9px;
+  font: 12.5px Inter, ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.pg-seg button:hover,
+.pg-seg button.on,
+.pg-actions button:hover,
+.pg-queries button:hover,
+.pg-queries button.on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.pg-cols {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.pg-cols label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--text);
+}
+
+.pg-main {
+  grid-area: main;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+}
+
+.pg-main .mg-root {
+  height: 100%;
+}
