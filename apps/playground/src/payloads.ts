@@ -81,7 +81,7 @@ export const detailHtml = {
       heading: "Status",
       field: "status",
       filter_type: "set",
-      detail_template: '<span class="mg-pill">{{value}}</span>',
+      detail_template: '<span class="tg-pill">{{value}}</span>',
     },
     {
       heading: "Bio",

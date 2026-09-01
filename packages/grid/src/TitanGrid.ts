@@ -18,7 +18,7 @@ import {
   type FilterModel,
   type QuerySpec,
   type RowDef,
-} from "@megagrid/core";
+} from "@titangrid/core";
 import { exportCsv, selectionToTsv } from "./clipboard.ts";
 import {
   applyFloating,
@@ -34,7 +34,7 @@ import { renderFrame } from "./render.ts";
 import { SelectionModel } from "./selection.ts";
 import { darkTheme, lightTheme, type GridApi, type GridOptions } from "./types.ts";
 
-export class MegaGrid {
+export class TitanGrid {
   readonly api: GridApi;
   private readonly root: HTMLElement;
   private readonly options: GridOptions;
@@ -78,8 +78,8 @@ export class MegaGrid {
     if (e.key === "Escape") this.closeRowDetail();
   };
 
-  static create(parent: HTMLElement, options: GridOptions): MegaGrid {
-    return new MegaGrid(parent, options);
+  static create(parent: HTMLElement, options: GridOptions): TitanGrid {
+    return new TitanGrid(parent, options);
   }
 
   private constructor(parent: HTMLElement, options: GridOptions) {
@@ -92,7 +92,7 @@ export class MegaGrid {
     this.spec.expression = options.query ?? null;
 
     this.root = document.createElement("div");
-    this.root.className = `mg-root${this.theme.name === "light" ? " mg-light" : ""}`;
+    this.root.className = `tg-root${this.theme.name === "light" ? " tg-light" : ""}`;
     this.root.tabIndex = 0;
     parent.appendChild(this.root);
     this.buildChrome();
@@ -167,43 +167,43 @@ export class MegaGrid {
 
   private buildChrome(): void {
     this.root.innerHTML = `
-      <div class="mg-query-bar">
+      <div class="tg-query-bar">
         <label>Query</label>
-        <input class="mg-query-input" spellcheck="false" placeholder='gold > 2 && contains(country, "USA")' />
-        <div class="mg-query-error"></div>
+        <input class="tg-query-input" spellcheck="false" placeholder='gold > 2 && contains(country, "USA")' />
+        <div class="tg-query-error"></div>
       </div>
-      <div class="mg-group-bar"></div>
-      <div class="mg-header"></div>
-      <div class="mg-filters"></div>
-      <div class="mg-viewport">
-        <canvas class="mg-canvas"></canvas>
-        <div class="mg-scroll"><div class="mg-sizer"></div></div>
+      <div class="tg-group-bar"></div>
+      <div class="tg-header"></div>
+      <div class="tg-filters"></div>
+      <div class="tg-viewport">
+        <canvas class="tg-canvas"></canvas>
+        <div class="tg-scroll"><div class="tg-sizer"></div></div>
       </div>
-      <div class="mg-status"></div>
-      <div class="mg-detail" hidden>
-        <div class="mg-detail-backdrop" data-detail-close="1"></div>
-        <div class="mg-detail-panel" role="dialog" aria-modal="true" aria-labelledby="mg-detail-title">
-          <header class="mg-detail-head">
-            <h3 id="mg-detail-title"></h3>
-            <button type="button" class="mg-detail-close" data-detail-close="1" aria-label="Close">×</button>
+      <div class="tg-status"></div>
+      <div class="tg-detail" hidden>
+        <div class="tg-detail-backdrop" data-detail-close="1"></div>
+        <div class="tg-detail-panel" role="dialog" aria-modal="true" aria-labelledby="tg-detail-title">
+          <header class="tg-detail-head">
+            <h3 id="tg-detail-title"></h3>
+            <button type="button" class="tg-detail-close" data-detail-close="1" aria-label="Close">×</button>
           </header>
-          <div class="mg-detail-body"></div>
+          <div class="tg-detail-body"></div>
         </div>
       </div>
     `;
-    this.queryInput = this.root.querySelector(".mg-query-input")!;
-    this.queryError = this.root.querySelector(".mg-query-error")!;
-    this.groupBar = this.root.querySelector(".mg-group-bar")!;
-    this.headerEl = this.root.querySelector(".mg-header")!;
-    this.filterEl = this.root.querySelector(".mg-filters")!;
-    this.viewport = this.root.querySelector(".mg-viewport")!;
-    this.canvas = this.root.querySelector(".mg-canvas")!;
-    this.scrollEl = this.root.querySelector(".mg-scroll")!;
-    this.sizer = this.root.querySelector(".mg-sizer")!;
-    this.statusEl = this.root.querySelector(".mg-status")!;
-    this.detailEl = this.root.querySelector(".mg-detail")!;
-    this.detailTitle = this.root.querySelector("#mg-detail-title")!;
-    this.detailBody = this.root.querySelector(".mg-detail-body")!;
+    this.queryInput = this.root.querySelector(".tg-query-input")!;
+    this.queryError = this.root.querySelector(".tg-query-error")!;
+    this.groupBar = this.root.querySelector(".tg-group-bar")!;
+    this.headerEl = this.root.querySelector(".tg-header")!;
+    this.filterEl = this.root.querySelector(".tg-filters")!;
+    this.viewport = this.root.querySelector(".tg-viewport")!;
+    this.canvas = this.root.querySelector(".tg-canvas")!;
+    this.scrollEl = this.root.querySelector(".tg-scroll")!;
+    this.sizer = this.root.querySelector(".tg-sizer")!;
+    this.statusEl = this.root.querySelector(".tg-status")!;
+    this.detailEl = this.root.querySelector(".tg-detail")!;
+    this.detailTitle = this.root.querySelector("#tg-detail-title")!;
+    this.detailBody = this.root.querySelector(".tg-detail-body")!;
     if (!this.filterHeight) this.filterEl.style.display = "none";
     if (this.spec.expression) this.queryInput.value = this.spec.expression;
   }
@@ -221,7 +221,7 @@ export class MegaGrid {
     this.groupBar.addEventListener("dragover", (e) => e.preventDefault());
     this.groupBar.addEventListener("drop", (e) => {
       e.preventDefault();
-      const field = e.dataTransfer?.getData("text/megagrid-field") || e.dataTransfer?.getData("text/plain");
+      const field = e.dataTransfer?.getData("text/titangrid-field") || e.dataTransfer?.getData("text/plain");
       if (field && !this.spec.groupBy.includes(field) && field !== ROW_NUMBER_FIELD) {
         this.setGroupBy([...this.spec.groupBy, field]);
       }
@@ -401,8 +401,8 @@ export class MegaGrid {
 
   private syncHeaderScroll(): void {
     const x = `translateX(${-this.scrollEl.scrollLeft}px)`;
-    const center = this.headerEl.querySelector(".mg-h-center") as HTMLElement | null;
-    const fcenter = this.filterEl.querySelector(".mg-f-center") as HTMLElement | null;
+    const center = this.headerEl.querySelector(".tg-h-center") as HTMLElement | null;
+    const fcenter = this.filterEl.querySelector(".tg-f-center") as HTMLElement | null;
     if (center) center.style.transform = x;
     if (fcenter) fcenter.style.transform = x;
   }
@@ -411,10 +411,10 @@ export class MegaGrid {
     this.popup?.close();
     this.headerEl.style.height = `${this.headerHeight}px`;
     this.headerEl.innerHTML = "";
-    const left = el("div", "mg-h-left");
-    const clip = el("div", "mg-h-center-clip");
-    const center = el("div", "mg-h-center");
-    const right = el("div", "mg-h-right");
+    const left = el("div", "tg-h-left");
+    const clip = el("div", "tg-h-center-clip");
+    const center = el("div", "tg-h-center");
+    const right = el("div", "tg-h-right");
     for (const col of this.layout.left) left.appendChild(this.headerCell(col.index));
     for (const col of this.layout.center) center.appendChild(this.headerCell(col.index));
     for (const col of this.layout.right) right.appendChild(this.headerCell(col.index));
@@ -425,12 +425,12 @@ export class MegaGrid {
 
   private headerCell(index: number): HTMLElement {
     const col = this.layout.all[index]!;
-    const node = el("div", "mg-col-h");
+    const node = el("div", "tg-col-h");
     node.style.width = `${col.width}px`;
     node.textContent = col.def.header ?? col.def.field;
     const sort = this.spec.sorts.find((s) => s.field === col.def.field);
     if (sort) {
-      const mark = el("span", "mg-sort");
+      const mark = el("span", "tg-sort");
       mark.textContent = sort.dir === "asc" ? "▲" : "▼";
       node.appendChild(mark);
     }
@@ -439,7 +439,7 @@ export class MegaGrid {
       node.title = filterKindTitle(kind);
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "mg-filter-btn";
+      btn.className = "tg-filter-btn";
       btn.dataset.field = col.def.field;
       btn.setAttribute("aria-label", `Filter ${col.def.header ?? col.def.field}`);
       btn.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12l-4.5 5.4V13l-3 1.5V8.4z"/></svg>`;
@@ -452,11 +452,11 @@ export class MegaGrid {
       node.appendChild(btn);
     }
     node.addEventListener("click", (e) => {
-      if ((e.target as HTMLElement).classList.contains("mg-resize")) return;
+      if ((e.target as HTMLElement).classList.contains("tg-resize")) return;
       this.toggleSort(col.def.field, e.shiftKey);
     });
     if (col.def.resizable !== false) {
-      const handle = el("div", "mg-resize");
+      const handle = el("div", "tg-resize");
       handle.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -468,7 +468,7 @@ export class MegaGrid {
     if (col.def.groupable !== false && col.def.field !== ROW_NUMBER_FIELD) {
       node.draggable = true;
       node.addEventListener("dragstart", (e) => {
-        e.dataTransfer?.setData("text/megagrid-field", col.def.field);
+        e.dataTransfer?.setData("text/titangrid-field", col.def.field);
         e.dataTransfer?.setData("text/plain", col.def.field);
       });
     }
@@ -478,10 +478,10 @@ export class MegaGrid {
   private rebuildFilters(): void {
     if (!this.filterHeight) return;
     this.filterEl.innerHTML = "";
-    const left = el("div", "mg-f-left");
-    const clip = el("div", "mg-f-center-clip");
-    const center = el("div", "mg-f-center");
-    const right = el("div", "mg-f-right");
+    const left = el("div", "tg-f-left");
+    const clip = el("div", "tg-f-center-clip");
+    const center = el("div", "tg-f-center");
+    const right = el("div", "tg-f-right");
     for (const col of this.layout.left) left.appendChild(this.filterCell(col.index));
     for (const col of this.layout.center) center.appendChild(this.filterCell(col.index));
     for (const col of this.layout.right) right.appendChild(this.filterCell(col.index));
@@ -492,7 +492,7 @@ export class MegaGrid {
 
   private filterCell(index: number): HTMLElement {
     const col = this.layout.all[index]!;
-    const wrap = el("div", "mg-col-f");
+    const wrap = el("div", "tg-col-f");
     wrap.style.width = `${col.width}px`;
     const kind = kindForColumn(col.def);
     if (kind === "none" || col.def.field === ROW_NUMBER_FIELD) return wrap;
@@ -533,11 +533,11 @@ export class MegaGrid {
   private setFloat(def: ColumnDef, model: ColumnFilterModel | undefined): HTMLButtonElement {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "mg-set-float";
+    btn.className = "tg-set-float";
     btn.dataset.field = def.field;
     btn.title = "Set filter · multi-select";
     const label = document.createElement("span");
-    label.className = "mg-set-float-label";
+    label.className = "tg-set-float-label";
     label.textContent = setFloatLabel(model);
     btn.appendChild(label);
     if (isFilterActive(model)) btn.classList.add("on");
@@ -551,7 +551,7 @@ export class MegaGrid {
 
   private booleanFloat(field: string, model: ColumnFilterModel | undefined): HTMLSelectElement {
     const select = document.createElement("select");
-    select.className = "mg-bool-float";
+    select.className = "tg-bool-float";
     select.dataset.field = field;
     select.title = "Boolean filter";
     for (const [value, text] of [
@@ -602,12 +602,12 @@ export class MegaGrid {
   private rebuildGroupBar(): void {
     this.groupBar.innerHTML = "";
     if (!this.spec.groupBy.length) {
-      const hint = el("span", "mg-hint");
+      const hint = el("span", "tg-hint");
       hint.textContent = "Drag a column header here to group (row grouping · aggregation)";
       this.groupBar.appendChild(hint);
     }
     for (const field of this.spec.groupBy) {
-      const chip = el("div", "mg-chip");
+      const chip = el("div", "tg-chip");
       const def = this.columns.find((c) => c.field === field);
       chip.append(def?.header ?? field);
       const btn = document.createElement("button");
@@ -746,7 +746,7 @@ export class MegaGrid {
     this.detailBody.innerHTML = "";
     if (this.rowDef?.template) {
       const wrap = document.createElement("div");
-      wrap.className = "mg-detail-html";
+      wrap.className = "tg-detail-html";
       wrap.innerHTML = renderTemplate(this.rowDef.template, data);
       this.detailBody.appendChild(wrap);
       this.detailEl.hidden = false;
@@ -754,14 +754,14 @@ export class MegaGrid {
     }
 
     const dl = document.createElement("dl");
-    dl.className = "mg-detail-list";
+    dl.className = "tg-detail-list";
     for (const col of cols) {
       const value = data[col.field];
       const dt = document.createElement("dt");
       dt.textContent = col.header ?? col.field;
       const dd = document.createElement("dd");
       if (col.detailTemplate) {
-        dd.className = "mg-detail-html";
+        dd.className = "tg-detail-html";
         dd.innerHTML = renderTemplate(col.detailTemplate, {
           ...data,
           value,
@@ -862,7 +862,7 @@ export class MegaGrid {
     const x = this.layout.xForColumn(col, this.scrollEl.scrollLeft, this.scrollEl.clientWidth);
     const y = row * this.rowHeight - this.scrollEl.scrollTop;
     const input = document.createElement("input");
-    input.className = "mg-editor";
+    input.className = "tg-editor";
     input.style.left = `${x}px`;
     input.style.top = `${y}px`;
     input.style.width = `${col.width}px`;
@@ -988,11 +988,11 @@ export class MegaGrid {
   }
 
   private syncFilterButtons(): void {
-    this.headerEl.querySelectorAll<HTMLButtonElement>(".mg-filter-btn").forEach((btn) => {
+    this.headerEl.querySelectorAll<HTMLButtonElement>(".tg-filter-btn").forEach((btn) => {
       const field = btn.dataset.field;
       btn.classList.toggle("on", !!(field && isFilterActive(this.spec.filterModel[field])));
     });
-    this.filterEl.querySelectorAll<HTMLButtonElement>(".mg-set-float").forEach((btn) => {
+    this.filterEl.querySelectorAll<HTMLButtonElement>(".tg-set-float").forEach((btn) => {
       const field = btn.dataset.field;
       btn.classList.toggle("on", !!(field && isFilterActive(this.spec.filterModel[field])));
     });
@@ -1003,14 +1003,14 @@ export class MegaGrid {
     if (!col) return;
     const kind = kindForColumn(col);
     const model = this.spec.filterModel[field];
-    const setBtn = this.filterEl.querySelector<HTMLButtonElement>(`.mg-set-float[data-field="${cssAttr(field)}"]`);
+    const setBtn = this.filterEl.querySelector<HTMLButtonElement>(`.tg-set-float[data-field="${cssAttr(field)}"]`);
     if (setBtn) {
-      const label = setBtn.querySelector(".mg-set-float-label");
+      const label = setBtn.querySelector(".tg-set-float-label");
       if (label) label.textContent = setFloatLabel(model);
       setBtn.classList.toggle("on", isFilterActive(model));
       return;
     }
-    const boolSel = this.filterEl.querySelector<HTMLSelectElement>(`.mg-bool-float[data-field="${cssAttr(field)}"]`);
+    const boolSel = this.filterEl.querySelector<HTMLSelectElement>(`.tg-bool-float[data-field="${cssAttr(field)}"]`);
     if (boolSel) {
       boolSel.value = booleanFloatValue(model);
       return;

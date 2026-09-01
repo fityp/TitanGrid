@@ -1,5 +1,5 @@
-import type { ColumnStore, DisplayRow, QueryEngine } from "@megagrid/core";
-import { formatDate } from "@megagrid/core";
+import type { ColumnStore, DisplayRow, QueryEngine } from "@titangrid/core";
+import { formatDate } from "@titangrid/core";
 import type { ColumnLayout, LaidOutColumn } from "./layout.ts";
 import { ROW_NUMBER_FIELD } from "./layout.ts";
 import type { SelectionModel } from "./selection.ts";

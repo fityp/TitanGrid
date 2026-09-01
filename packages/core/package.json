@@ -1,14 +1,11 @@
 {
-  "name": "@megagrid/core",
+  "name": "@titangrid/core",
+  "private": true,
   "version": "0.1.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
-  "files": [
-    "src",
-    "dist"
-  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

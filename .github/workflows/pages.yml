@@ -25,9 +25,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build -w @megagrid/playground
+      - run: npm run build -w titangrid
+      - run: npm run build -w @titangrid/playground
         env:
           GITHUB_PAGES: "1"
+      - run: cp packages/grid/dist/titangrid.js apps/playground/dist/titangrid.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/playground/dist

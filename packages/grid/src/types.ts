@@ -1,4 +1,4 @@
-import type { BoundTree, ColumnDef, ColumnFilter, ColumnStore, EasyColumn, EasyRow, Field, FilterModel, QueryStats, Sort } from "@megagrid/core";
+import type { BoundTree, ColumnDef, ColumnFilter, ColumnStore, EasyColumn, EasyRow, Field, FilterModel, QueryStats, Sort } from "@titangrid/core";
 
 export interface GridOptions {
   columns?: ColumnDef[];

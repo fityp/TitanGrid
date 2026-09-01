@@ -17,7 +17,7 @@ import {
   type SimpleFilterModel,
   type TextFilterModel,
   type UniqueValue,
-} from "@megagrid/core";
+} from "@titangrid/core";
 
 export interface FilterPopupHandlers {
   getModel(field: string): ColumnFilterModel | undefined;
@@ -41,7 +41,7 @@ export class FilterPopup {
 
   constructor(private readonly host: HTMLElement) {
     this.el = document.createElement("div");
-    this.el.className = "mg-filter-popup";
+    this.el.className = "tg-filter-popup";
     this.el.hidden = true;
     host.appendChild(this.el);
   }
@@ -119,11 +119,11 @@ export class FilterPopup {
     const multi: MultiFilterModel = model?.filterType === "multi"
       ? model
       : { filterType: "multi", filterModels: [this.pick(model, "text"), this.pick(model, "set")] };
-    const tabs = el("div", "mg-filter-tabs");
+    const tabs = el("div", "tg-filter-tabs");
     const textBtn = tabBtn("Filter", true);
     const setBtn = tabBtn("Set", false);
     tabs.append(textBtn, setBtn);
-    const body = el("div", "mg-filter-tab-body");
+    const body = el("div", "tg-filter-tab-body");
     const textPane = el("div", "");
     const setPane = el("div", "");
     setPane.hidden = true;
@@ -187,7 +187,7 @@ export class FilterPopup {
     };
     conditions.forEach((cond, i) => {
       if (i > 0) {
-        const row = el("div", "mg-filter-join");
+        const row = el("div", "tg-filter-join");
         const andB = tabBtn("AND", join === "AND");
         const orB = tabBtn("OR", join === "OR");
         andB.addEventListener("click", () => {
@@ -216,7 +216,7 @@ export class FilterPopup {
     onChange: (c: SimpleFilterModel) => void,
   ): HTMLElement {
     let current = cond;
-    const row = el("div", "mg-filter-cond");
+    const row = el("div", "tg-filter-cond");
     const select = document.createElement("select");
     const options = kind === "text" ? TEXT_OPTIONS : NUMBER_OPTIONS;
     for (const opt of options) {
@@ -226,7 +226,7 @@ export class FilterPopup {
       if (opt.key === current.type) o.selected = true;
       select.appendChild(o);
     }
-    const values = el("div", "mg-filter-values");
+    const values = el("div", "tg-filter-values");
     const emit = (next: SimpleFilterModel) => {
       current = next;
       onChange(current);
@@ -285,17 +285,17 @@ export class FilterPopup {
     }
 
     const mini = document.createElement("input");
-    mini.className = "mg-set-mini";
+    mini.className = "tg-set-mini";
     mini.placeholder = "Search values…";
     mini.addEventListener("keydown", (e) => e.stopPropagation());
 
-    const list = el("div", "mg-set-list");
+    const list = el("div", "tg-set-list");
     const selectAll = document.createElement("label");
-    selectAll.className = "mg-set-row mg-set-all";
+    selectAll.className = "tg-set-row tg-set-all";
     const allBox = document.createElement("input");
     allBox.type = "checkbox";
     selectAll.append(allBox, document.createTextNode(" (Select All)"));
-    const itemsWrap = el("div", "mg-set-items");
+    const itemsWrap = el("div", "tg-set-items");
     list.append(selectAll, itemsWrap);
 
     const applyFromSelected = () => {
@@ -332,7 +332,7 @@ export class FilterPopup {
       const max = 400;
       for (const u of items.slice(0, max)) {
         const row = document.createElement("label");
-        row.className = "mg-set-row";
+        row.className = "tg-set-row";
         const box = document.createElement("input");
         box.type = "checkbox";
         const key = valueKey(u);
@@ -345,13 +345,13 @@ export class FilterPopup {
           applyFromSelected();
         });
         const count = document.createElement("span");
-        count.className = "mg-set-count";
+        count.className = "tg-set-count";
         count.textContent = String(u.count);
         row.append(box, document.createTextNode(` ${u.label}`), count);
         itemsWrap.appendChild(row);
       }
       if (items.length > max) {
-        const more = el("div", "mg-set-more");
+        const more = el("div", "tg-set-more");
         more.textContent = `${(items.length - max).toLocaleString()} more — refine search`;
         itemsWrap.appendChild(more);
       }
@@ -372,7 +372,7 @@ export class FilterPopup {
   }
 
   private resetBar(onReset: () => void): HTMLElement {
-    const bar = el("div", "mg-filter-actions");
+    const bar = el("div", "tg-filter-actions");
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = "Reset";
@@ -466,7 +466,7 @@ function tabBtn(label: string, on: boolean): HTMLButtonElement {
   const b = document.createElement("button");
   b.type = "button";
   b.textContent = label;
-  b.className = `mg-tab${on ? " on" : ""}`;
+  b.className = `tg-tab${on ? " on" : ""}`;
   return b;
 }
 

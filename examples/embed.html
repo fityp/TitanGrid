@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TitanGrid embed</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      #host {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="host"></div>
+    <script type="module">
+      import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.1.0/dist/titangrid.js";
+
+      TitanGrid.create(document.getElementById("host"), {
+        column_definitions: [
+          { heading: "Name", field: "name", enable_sorting: true, filter_type: "text" },
+          { heading: "Score", field: "score", type: "number", filter_type: "number" },
+        ],
+        table_data: [
+          { name: "Ada", score: 91 },
+          { name: "Tom", score: 74, city: "Paris" },
+        ],
+      });
+    </script>
+  </body>
+</html>

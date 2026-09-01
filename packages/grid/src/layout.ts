@@ -1,4 +1,4 @@
-import type { ColumnDef, PinSide } from "@megagrid/core";
+import type { ColumnDef, PinSide } from "@titangrid/core";
 
 export const ROW_NUMBER_FIELD = "__rownum";
 

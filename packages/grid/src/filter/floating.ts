@@ -6,8 +6,8 @@ import {
   type MultiFilterModel,
   type NumberFilterModel,
   type SetFilterModel,
-} from "@megagrid/core";
-import type { ColumnDef } from "@megagrid/core";
+} from "@titangrid/core";
+import type { ColumnDef } from "@titangrid/core";
 
 export function kindForColumn(def: ColumnDef): FilterKind {
   if (def.filterable === false) return "none";

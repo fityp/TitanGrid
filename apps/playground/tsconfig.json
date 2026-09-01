@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "titangrid": ["../../packages/grid/src/index.ts"],
+      "@titangrid/core": ["../../packages/core/src/index.ts"]
+    }
   },
   "include": ["src"]
 }

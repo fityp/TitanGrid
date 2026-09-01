@@ -1,4 +1,4 @@
-import type { ColumnStore, QueryEngine } from "@megagrid/core";
+import type { ColumnStore, QueryEngine } from "@titangrid/core";
 import type { ColumnLayout } from "./layout.ts";
 import { ROW_NUMBER_FIELD } from "./layout.ts";
 import type { SelectionModel } from "./selection.ts";

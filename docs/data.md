@@ -1,6 +1,6 @@
 # Easy payload
 
-Your service returns two fields. MegaGrid binds them with defaults — no mapping layer required.
+Your service returns two fields. TitanGrid binds them with defaults — no mapping layer required.
 
 ```json
 {
@@ -16,7 +16,7 @@ Your service returns two fields. MegaGrid binds them with defaults — no mappin
 ```
 
 ```ts
-MegaGrid.create(document.getElementById("host")!, payload);
+TitanGrid.create(document.getElementById("host")!, payload);
 api.setPayload(payload);
 ```
 
@@ -94,7 +94,9 @@ Also recognizes `items` or `rows` as the child array (array of objects, not a sp
 
 ## GitHub demo
 
-The live demo is a static page: [https://fityp.github.io/MegaGrid/](https://fityp.github.io/MegaGrid/). Open it in a browser — no Node required to use it. GitHub Actions builds the playground to HTML/JS/CSS and publishes it.
+The live demo is a static page: [https://fityp.github.io/TitanGrid/](https://fityp.github.io/TitanGrid/). Open it in a browser — no Node required to use it. GitHub Actions builds the playground to HTML/JS/CSS and publishes it.
+
+To put TitanGrid on your own page, install `titangrid` or import a versioned jsDelivr URL. See the [README](../README.md#use-it-in-your-project).
 
 See [Define columns](columns.md) for the full engine `ColumnDef` if you need `format` functions.
 

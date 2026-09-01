@@ -7,7 +7,7 @@ import {
   type BoundTree,
   type ColumnDef,
   type ColumnStore,
-} from "@megagrid/core";
+} from "@titangrid/core";
 
 const REGIONS = [
   "Americas",

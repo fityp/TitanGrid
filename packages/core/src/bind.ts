@@ -86,7 +86,7 @@ export interface BoundGrid {
 }
 
 /**
- * Turn a service payload (or a raw table) into columns + rows MegaGrid can ingest.
+ * Turn a service payload (or a raw table) into columns + rows TitanGrid can ingest.
  * One linear pass over the data. Extra headings stay empty; extra data columns
  * get Excel letters (A, B, C, …) by index.
  */

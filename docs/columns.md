@@ -5,7 +5,7 @@ Start with the easy names on a service payload (`heading`, `enable_sorting`, `fi
 This page is the full engine `ColumnDef` if you need `format`, pinning, or aggregations.
 
 ```ts
-import { MegaGrid, type ColumnDef } from "@megagrid/grid";
+import { TitanGrid, type ColumnDef } from "titangrid";
 
 const columns: ColumnDef[] = [
   { field: "id", header: "ID", width: 72, pinned: "left", editable: false, filterable: false },
@@ -15,7 +15,7 @@ const columns: ColumnDef[] = [
   { field: "when", header: "Date", type: "date", width: 120, filter: "date" },
 ];
 
-MegaGrid.create(host, {
+TitanGrid.create(host, {
   columns,
   data: rows,
   defaultColDef: {
@@ -175,7 +175,7 @@ Only columns with `agg` show an aggregate on the group row.
 
 ## Grid-level options that affect columns
 
-Passed next to `columns` on `MegaGrid.create`:
+Passed next to `columns` on `TitanGrid.create`:
 
 | Option | Default | Meaning |
 | --- | --- | --- |

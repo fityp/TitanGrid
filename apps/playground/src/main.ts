@@ -1,4 +1,5 @@
-import { MegaGrid, type ColumnDef, type GridApi, type GridOptions } from "@megagrid/grid";
+import { TitanGrid, type ColumnDef, type GridApi, type GridOptions } from "titangrid";
+import "titangrid/styles.css";
 import { generateRows } from "./data.ts";
 import { generateMegaDataset, type MegaDataset } from "./mega.ts";
 import { SAMPLES, extraData } from "./payloads.ts";
@@ -79,9 +80,9 @@ app.innerHTML = `
   <div class="pg">
     <header class="pg-top">
       <div class="pg-brand">
-        <div class="pg-mark">MG</div>
+        <div class="pg-mark">TG</div>
         <div>
-          <div class="pg-name">MegaGrid</div>
+          <div class="pg-name">TitanGrid</div>
           <div class="pg-tag">Two-field payload · columnar engine · canvas viewport</div>
         </div>
       </div>
@@ -164,7 +165,7 @@ const colBox = document.querySelector("#cols") as HTMLElement;
 
 let theme: "dark" | "light" = "dark";
 let api: GridApi | undefined;
-let grid: MegaGrid | undefined;
+let grid: TitanGrid | undefined;
 
 const columns: ColumnDef[] = [
   { field: "athlete", header: "Athlete", width: 170, pinned: "left" as const, groupable: false, filter: "text" },
@@ -238,7 +239,7 @@ function createGrid(options: GridOptions, metricsHtml: (stats: { ingestMs: numbe
   grid?.destroy();
   host.innerHTML = "";
   filterBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
-  grid = MegaGrid.create(host, {
+  grid = TitanGrid.create(host, {
     ...options,
     theme,
     rowHeight: 28,
@@ -405,7 +406,7 @@ document.querySelector("#csv")!.addEventListener("click", () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "megagrid.csv";
+  a.download = "titangrid.csv";
   a.click();
   URL.revokeObjectURL(url);
 });

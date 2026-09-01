@@ -1,5 +1,5 @@
 {
-  "name": "megagrid-workspace",
+  "name": "titangrid-workspace",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -7,10 +7,10 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @megagrid/playground",
-    "test": "npm run test -w @megagrid/core",
-    "test:watch": "npm run test:watch -w @megagrid/core",
-    "build": "npm run build -w @megagrid/core && npm run build -w @megagrid/grid && npm run build -w @megagrid/playground"
+    "dev": "npm run dev -w @titangrid/playground",
+    "test": "npm run test -w @titangrid/core",
+    "test:watch": "npm run test:watch -w @titangrid/core",
+    "build": "npm run build -w titangrid && npm run build -w @titangrid/playground"
   },
   "engines": {
     "node": ">=20"

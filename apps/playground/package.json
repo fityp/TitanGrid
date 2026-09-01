@@ -1,5 +1,5 @@
 {
-  "name": "@megagrid/playground",
+  "name": "@titangrid/playground",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@megagrid/grid": "*"
+    "titangrid": "*"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

@@ -1,22 +1,49 @@
 {
-  "name": "@megagrid/grid",
+  "name": "titangrid",
   "version": "0.1.0",
+  "description": "High-performance canvas data grid",
+  "license": "MIT",
   "type": "module",
+  "sideEffects": [
+    "./dist/styles.css",
+    "./dist/titangrid.js"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/titangrid.js",
+  "jsdelivr": "./dist/titangrid.js",
   "exports": {
-    ".": "./src/index.ts",
-    "./styles.css": "./src/styles.css"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
   },
   "files": [
-    "src",
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "vite build && vite build -c vite.cdn.config.ts && cp src/styles.css dist/styles.css",
+    "build:cdn": "vite build -c vite.cdn.config.ts"
   },
-  "dependencies": {
-    "@megagrid/core": "*"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fityp/TitanGrid.git",
+    "directory": "packages/grid"
+  },
+  "homepage": "https://fityp.github.io/TitanGrid/",
+  "bugs": {
+    "url": "https://github.com/fityp/TitanGrid/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3",
+    "vite-plugin-dts": "^4.5.4"
   }
 }
