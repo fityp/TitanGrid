@@ -1,6 +1,6 @@
 {
   "name": "titangrid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "High-performance canvas data grid",
   "license": "MIT",
   "type": "module",
@@ -23,7 +23,8 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "vite build && vite build -c vite.cdn.config.ts && cp src/styles.css dist/styles.css",

@@ -4,9 +4,7 @@
 
 A high-performance JavaScript data grid. You send **column definitions** and **table data**. TitanGrid fills in the rest, packs columns into typed arrays, and paints the viewport to canvas.
 
-**[Live demo](https://fityp.github.io/TitanGrid/)**
-
-## Use it in your project
+**[Live demo](https://fityp.github.io/TitanGrid/)** · **[GitHub](https://github.com/fityp/TitanGrid)**
 
 ```bash
 npm install titangrid
@@ -19,7 +17,7 @@ import "titangrid/styles.css";
 TitanGrid.create(document.getElementById("host")!, {
   column_definitions: [
     { heading: "Name", field: "name", enable_sorting: true, filter_type: "text" },
-    { heading: "Score", field: "score", type: "number", filter_type: "number" },
+      { heading: "Score", field: "score", type: "number", filter_type: "number" },
   ],
   table_data: [
     { name: "Ada", score: 91 },
@@ -49,14 +47,6 @@ TitanGrid.create(document.getElementById("host")!, {
 - No definitions: object keys become columns, or arrays become **A**, **B**, **C**.
 - Nested `children` become an expandable tree.
 
-**[Load data](docs/data.md)** · **[Column fields](docs/columns.md)**
-
-## Run this repo
-
-```bash
-npm install
-npm test
-npm run dev
-```
+**[Load data](https://github.com/fityp/TitanGrid/blob/main/docs/data.md)** · **[Column fields](https://github.com/fityp/TitanGrid/blob/main/docs/columns.md)**
 
 MIT
