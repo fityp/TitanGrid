@@ -21,7 +21,7 @@ export class QueryEngine {
     this.columns = columns;
     this.tree = tree;
     this.expanded.clear();
-    if (tree && tree.parent.length <= 10_000) {
+    if (tree) {
       for (let i = 0; i < tree.parent.length; i++) {
         if (tree.children[i]?.length) this.expanded.add(`t:${i}`);
       }

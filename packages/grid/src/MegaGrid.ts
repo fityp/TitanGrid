@@ -142,7 +142,6 @@ export class MegaGrid {
         this.recompute();
       },
       expandAll: () => {
-        if (this.tree && this.tree.parent.length > 50_000) return;
         this.engine.expandAll();
         this.recompute();
       },

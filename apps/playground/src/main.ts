@@ -110,7 +110,7 @@ app.innerHTML = `
         <div class="pg-actions" style="margin-top:8px">
           <button id="mega-set">Mega 1M × 100</button>
         </div>
-        <p class="pg-copy" style="margin-top:8px">Mega: 1 million nested rows, 100 columns. Expand a team, then click a row for the full record.</p>
+        <p class="pg-copy" style="margin-top:8px">Mega: 1 million nested rows, 100 columns, all loaded. Teams start expanded. Click a row for the full record.</p>
       </section>
       <section>
         <h2>Column filters</h2>
