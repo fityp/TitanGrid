@@ -8,6 +8,7 @@ import {
   type ColumnDef,
   type ColumnStore,
 } from "@titangrid/core";
+import { personName } from "./names.ts";
 
 const REGIONS = [
   "Americas",
@@ -36,8 +37,6 @@ const CITIES = [
 ];
 
 const STATUSES = ["Open", "Active", "Hold", "Closed"];
-const FIRST = ["Alex", "Sam", "Jordan", "Taylor", "Casey", "Riley", "Quinn", "Avery", "Cameron", "Parker"];
-const LAST = ["Nguyen", "Patel", "Silva", "Kowalski", "Rossi", "Sato", "Bennett", "García", "Walsh", "Kim"];
 
 export const MEGA_ROWS = 1_000_000;
 export const MEGA_COLS = 100;
@@ -137,7 +136,7 @@ export function generateMegaDataset(rowCount = MEGA_ROWS, teams = MEGA_TEAMS): M
       vector: stringVector(n, (i) =>
         tree.children[i]!.length
           ? `Team ${String(teamOf[i]! + 1).padStart(4, "0")}`
-          : `${FIRST[i % FIRST.length]} ${LAST[(i * 7) % LAST.length]}`,
+          : personName(i),
       ),
     },
     {

@@ -1,3 +1,5 @@
+import { personName } from "./names.ts";
+
 export type DemoRow = {
   athlete: string;
   age: number;
@@ -46,42 +48,6 @@ const SPORTS = [
   "Weightlifting",
 ];
 
-const FIRST = [
-  "Alex",
-  "Sam",
-  "Jordan",
-  "Taylor",
-  "Casey",
-  "Riley",
-  "Quinn",
-  "Avery",
-  "Cameron",
-  "Parker",
-  "Morgan",
-  "Drew",
-  "Skyler",
-  "Reese",
-  "Harper",
-];
-
-const LAST = [
-  "Nguyen",
-  "Patel",
-  "Silva",
-  "Kowalski",
-  "Andersson",
-  "Rossi",
-  "Müller",
-  "Sato",
-  "Okafor",
-  "Dubois",
-  "Bennett",
-  "García",
-  "Ivanov",
-  "Walsh",
-  "Kim",
-];
-
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -111,7 +77,7 @@ export function generateRows(count: number, seed = 0x51eeded): DemoRow[] {
       trend[p] = Math.round(v * 10) / 10;
     }
     rows[i] = {
-      athlete: `${pick(FIRST)} ${pick(LAST)}`,
+      athlete: personName(i),
       age: 16 + Math.floor(rand() * 22),
       country: pick(COUNTRIES),
       year,
