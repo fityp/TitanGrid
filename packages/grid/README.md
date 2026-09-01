@@ -31,7 +31,7 @@ TitanGrid.create(document.getElementById("host")!, {
 ```html
 <div id="host" style="height: 80vh"></div>
 <script type="module">
-  import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.2.0/dist/titangrid.js";
+  import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.2.1/dist/titangrid.js";
 
   TitanGrid.create(document.getElementById("host"), {
     column_definitions: [/* … */],

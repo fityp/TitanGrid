@@ -1,5 +1,6 @@
 node_modules
 dist
+*.prepack-backup
 .DS_Store
 *.local
 coverage
