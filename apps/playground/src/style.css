@@ -177,6 +177,7 @@ body,
 .pg-seg button:hover,
 .pg-seg button.on,
 .pg-actions button:hover,
+.pg-actions button.on,
 .pg-queries button:hover,
 .pg-queries button.on {
   border-color: var(--accent);

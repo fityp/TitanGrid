@@ -78,3 +78,7 @@ Also recognizes `items` or `rows` as the child array (array of objects, not a sp
 The live demo is a static page: [https://fityp.github.io/MegaGrid/](https://fityp.github.io/MegaGrid/). Open it in a browser — no Node required to use it. GitHub Actions builds the playground to HTML/JS/CSS and publishes it.
 
 See [Define columns](columns.md) for the full engine `ColumnDef` if you need `format` functions.
+
+## Row detail
+
+Set `rowDetail: true` to open a modal with every field when a row is clicked. Expand/collapse still uses the first column on nested group rows. You can also listen with `onRowClicked` and read `api.getRow(sourceIndex)`.

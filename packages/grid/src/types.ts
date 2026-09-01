@@ -1,22 +1,34 @@
-import type { ColumnDef, ColumnFilter, EasyColumn, Field, FilterModel, QueryStats, Sort } from "@megagrid/core";
+import type { BoundTree, ColumnDef, ColumnFilter, ColumnStore, EasyColumn, Field, FilterModel, QueryStats, Sort } from "@megagrid/core";
 
 export interface GridOptions {
   columns?: ColumnDef[];
   data?: unknown;
   column_definitions?: EasyColumn[];
   table_data?: unknown;
+  store?: ColumnStore;
+  tree?: BoundTree | null;
   rowHeight?: number;
   headerHeight?: number;
   floatingFilterHeight?: number;
   rowNumbers?: boolean;
   floatingFilters?: boolean;
+  rowDetail?: boolean;
   groupBy?: Field[];
   theme?: "dark" | "light";
   defaultColDef?: Partial<ColumnDef>;
   query?: string;
   onReady?: (api: GridApi) => void;
   onCellValueChanged?: (event: CellValueChangedEvent) => void;
+  onRowClicked?: (event: RowClickedEvent) => void;
   onStats?: (stats: QueryStats) => void;
+}
+
+export interface RowClickedEvent {
+  displayIndex: number;
+  sourceIndex: number;
+  field: Field;
+  data: Record<string, unknown>;
+  kind: "leaf" | "group";
 }
 
 export interface CellValueChangedEvent {
@@ -52,6 +64,7 @@ export interface GridApi {
   collapseAll(): void;
   getDisplayedRowCount(): number;
   getSourceRowCount(): number;
+  getRow(sourceIndex: number): Record<string, unknown> | null;
   getStats(): QueryStats;
   copySelection(): string;
   exportCsv(): string;

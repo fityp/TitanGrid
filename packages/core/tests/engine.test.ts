@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { bindPayload } from "../src/bind.ts";
 import { compileExpression } from "../src/query/expression.ts";
 import { QueryEngine } from "../src/query/engine.ts";
-import { ingest } from "../src/store.ts";
+import { ingest, createColumnStore, numberVector, stringVector } from "../src/store.ts";
 import type { ColumnDef } from "../src/types.ts";
 import { defaultQuerySpec } from "../src/types.ts";
 
@@ -32,6 +32,18 @@ describe("ColumnStore ingest", () => {
     expect(store.getNumber("gold", 4)).toBe(4);
     store.set("gold", 0, 9);
     expect(store.getNumber("gold", 0)).toBe(9);
+    expect(store.getRow(0)).toMatchObject({ athlete: "A", gold: 9, country: "USA" });
+  });
+});
+
+describe("createColumnStore", () => {
+  it("packs vectors without row objects", () => {
+    const store = createColumnStore(2, [
+      { field: "n", type: "number", vector: numberVector(2, (i) => i + 1) },
+      { field: "s", type: "string", vector: stringVector(2, (i) => (i ? "b" : "a")) },
+    ]);
+    expect(store.getNumber("n", 1)).toBe(2);
+    expect(store.getRow(0)).toEqual({ n: 1, s: "a" });
   });
 });
 

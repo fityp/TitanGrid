@@ -1,6 +1,7 @@
 import {
   bindPayload,
   defaultQuerySpec,
+  formatDate,
   ingest,
   isFilterActive,
   isGridPayload,
@@ -10,6 +11,7 @@ import {
   type ColumnDef,
   type ColumnFilter,
   type ColumnFilterModel,
+  type ColumnStore,
   type Field,
   type FilterModel,
   type QuerySpec,
@@ -64,6 +66,13 @@ export class MegaGrid {
   private popup!: FilterPopup;
   private filterRaf = 0;
   private tree: BoundTree | null = null;
+  private detailEl!: HTMLElement;
+  private detailTitle!: HTMLElement;
+  private detailBody!: HTMLElement;
+  private pendingClick: { row: number; col: number; x: number; y: number } | null = null;
+  private onDocKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") this.closeRowDetail();
+  };
 
   static create(parent: HTMLElement, options: GridOptions): MegaGrid {
     return new MegaGrid(parent, options);
@@ -85,7 +94,11 @@ export class MegaGrid {
     this.buildChrome();
     this.popup = new FilterPopup(this.root);
     this.bind();
-    this.loadFromOptions(options);
+    if (options.store && options.columns?.length) {
+      this.applyStore(options.store, options.columns, options.tree ?? null);
+    } else {
+      this.loadFromOptions(options);
+    }
 
     this.api = this.createApi();
     options.onReady?.(this.api);
@@ -125,6 +138,7 @@ export class MegaGrid {
         this.recompute();
       },
       expandAll: () => {
+        if (this.tree && this.tree.parent.length > 50_000) return;
         this.engine.expandAll();
         this.recompute();
       },
@@ -134,6 +148,7 @@ export class MegaGrid {
       },
       getDisplayedRowCount: () => this.engine.displayedCount(),
       getSourceRowCount: () => this.engine.getStore()?.rowCount ?? 0,
+      getRow: (sourceIndex) => this.engine.getStore()?.getRow(sourceIndex) ?? null,
       getStats: () => this.engine.stats(),
       copySelection: () => this.copy(),
       exportCsv: () => {
@@ -162,6 +177,16 @@ export class MegaGrid {
         <div class="mg-scroll"><div class="mg-sizer"></div></div>
       </div>
       <div class="mg-status"></div>
+      <div class="mg-detail" hidden>
+        <div class="mg-detail-backdrop" data-detail-close="1"></div>
+        <div class="mg-detail-panel" role="dialog" aria-modal="true" aria-labelledby="mg-detail-title">
+          <header class="mg-detail-head">
+            <h3 id="mg-detail-title"></h3>
+            <button type="button" class="mg-detail-close" data-detail-close="1" aria-label="Close">×</button>
+          </header>
+          <div class="mg-detail-body"></div>
+        </div>
+      </div>
     `;
     this.queryInput = this.root.querySelector(".mg-query-input")!;
     this.queryError = this.root.querySelector(".mg-query-error")!;
@@ -173,6 +198,9 @@ export class MegaGrid {
     this.scrollEl = this.root.querySelector(".mg-scroll")!;
     this.sizer = this.root.querySelector(".mg-sizer")!;
     this.statusEl = this.root.querySelector(".mg-status")!;
+    this.detailEl = this.root.querySelector(".mg-detail")!;
+    this.detailTitle = this.root.querySelector("#mg-detail-title")!;
+    this.detailBody = this.root.querySelector(".mg-detail-body")!;
     if (!this.filterHeight) this.filterEl.style.display = "none";
     if (this.spec.expression) this.queryInput.value = this.spec.expression;
   }
@@ -197,6 +225,10 @@ export class MegaGrid {
     });
     this.ro = new ResizeObserver(() => this.redraw());
     this.ro.observe(this.viewport);
+    this.detailEl.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).closest("[data-detail-close]")) this.closeRowDetail();
+    });
+    document.addEventListener("keydown", this.onDocKey);
   }
 
   private setColumns(defs: ColumnDef[]): void {
@@ -226,6 +258,14 @@ export class MegaGrid {
     this.rebuildHeader();
     this.rebuildFilters();
     this.rebuildGroupBar();
+  }
+
+  private applyStore(store: ColumnStore, columns: ColumnDef[], tree: BoundTree | null): void {
+    this.tree = tree;
+    this.setColumns(columns);
+    this.engine.setStore(store, this.columns, this.tree);
+    this.engine.setIngestMs(0);
+    this.recompute();
   }
 
   private loadFromOptions(input: unknown): void {
@@ -600,6 +640,7 @@ export class MegaGrid {
 
   private onPointerDown(e: PointerEvent): void {
     if (e.button !== 0) return;
+    this.pendingClick = null;
     this.root.focus({ preventScroll: true });
     const hit = this.hit(e);
     if (!hit) return;
@@ -610,9 +651,11 @@ export class MegaGrid {
       if (col && first && col.index === first.index) {
         this.engine.toggleExpanded(display.id);
         this.recompute();
+        this.pendingClick = null;
         return;
       }
     }
+    this.pendingClick = { row: hit.row, col: hit.col, x: e.clientX, y: e.clientY };
     this.dragging = true;
     this.selection.setFocus(hit.row, hit.col, e.shiftKey);
     this.scrollEl.setPointerCapture(e.pointerId);
@@ -641,6 +684,9 @@ export class MegaGrid {
       this.updateStatus();
       this.scheduleDraw();
     }
+    if (this.pendingClick && (Math.abs(e.clientX - this.pendingClick.x) > 5 || Math.abs(e.clientY - this.pendingClick.y) > 5)) {
+      this.pendingClick = null;
+    }
   }
 
   private onWindowMove = (e: PointerEvent): void => {
@@ -654,9 +700,53 @@ export class MegaGrid {
   };
 
   private onWindowUp = (): void => {
+    const click = this.pendingClick;
     this.dragging = false;
     this.resizing = null;
+    this.pendingClick = null;
+    if (click) this.handleRowClick(click.row, click.col);
   };
+
+  private handleRowClick(displayIndex: number, colIndex: number): void {
+    const display = this.engine.displayRowAt(displayIndex);
+    const store = this.engine.getStore();
+    const col = this.layout.all[colIndex];
+    const sourceIndex = this.engine.sourceIndexAt(displayIndex);
+    if (!display || !store || sourceIndex == null || !col) return;
+    const data = store.getRow(sourceIndex);
+    const event = {
+      displayIndex,
+      sourceIndex,
+      field: col.def.field,
+      data,
+      kind: display.kind,
+    };
+    this.options.onRowClicked?.(event);
+    if (this.options.rowDetail) this.openRowDetail(event.data, display.kind);
+  }
+
+  private openRowDetail(data: Record<string, unknown>, kind: "leaf" | "group"): void {
+    const titleField = this.columns.find((c) => c.field !== ROW_NUMBER_FIELD)?.field;
+    const title = titleField ? data[titleField] : null;
+    this.detailTitle.textContent = title == null || title === "" ? (kind === "group" ? "Group" : "Row") : String(title);
+    this.detailBody.innerHTML = "";
+    const dl = document.createElement("dl");
+    dl.className = "mg-detail-list";
+    for (const col of this.columns) {
+      if (col.field === ROW_NUMBER_FIELD) continue;
+      const dt = document.createElement("dt");
+      dt.textContent = col.header ?? col.field;
+      const dd = document.createElement("dd");
+      dd.textContent = formatDetailValue(data[col.field], col.type);
+      dl.append(dt, dd);
+    }
+    this.detailBody.appendChild(dl);
+    this.detailEl.hidden = false;
+  }
+
+  private closeRowDetail(): void {
+    this.detailEl.hidden = true;
+  }
 
   private onDblClick(e: MouseEvent): void {
     const hit = this.hit(e);
@@ -848,6 +938,7 @@ export class MegaGrid {
     this.ro?.disconnect();
     window.removeEventListener("pointermove", this.onWindowMove);
     window.removeEventListener("pointerup", this.onWindowUp);
+    document.removeEventListener("keydown", this.onDocKey);
     if (this.raf) cancelAnimationFrame(this.raf);
     if (this.filterRaf) cancelAnimationFrame(this.filterRaf);
     this.popup.destroy();
@@ -916,4 +1007,15 @@ function cssAttr(value: string): string {
 
 function simpleFromLegacy(filter: ColumnFilter): ColumnFilterModel {
   return simpleFilterToModel(filter);
+}
+
+function formatDetailValue(value: unknown, type: ColumnDef["type"]): string {
+  if (value == null || value === "") return "—";
+  if (type === "date" && typeof value === "number") return formatDate(value);
+  if (type === "boolean") return value ? "True" : "False";
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Number.isInteger(value) ? value.toLocaleString() : value.toFixed(2);
+  }
+  if (ArrayBuffer.isView(value)) return `[${(value as Float64Array).length} values]`;
+  return String(value);
 }

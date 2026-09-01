@@ -2,8 +2,8 @@ export type { ColumnDef, ColumnFilter, DataType, DisplayModel, DisplayRow, Field
 export { defaultQuerySpec } from "./types.ts";
 export { bindPayload, excelLetter, isGridPayload } from "./bind.ts";
 export type { BoundGrid, BoundTree, EasyColumn, GridPayload } from "./bind.ts";
-export { ColumnStore, ingest, parseDate, formatDate, formatDateIso, BLANK_CODE } from "./store.ts";
-export type { UniqueValue } from "./store.ts";
+export { ColumnStore, ingest, createColumnStore, stringVector, numberVector, booleanVector, dateVector, parseDate, formatDate, formatDateIso, BLANK_CODE } from "./store.ts";
+export type { UniqueValue, Vector } from "./store.ts";
 export { QueryEngine } from "./query/engine.ts";
 export { compileExpression } from "./query/expression.ts";
 export { applyFilters, compileColumnFilter } from "./query/filter.ts";

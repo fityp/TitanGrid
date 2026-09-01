@@ -1,4 +1,5 @@
 import type { ColumnStore, DisplayRow, QueryEngine } from "@megagrid/core";
+import { formatDate } from "@megagrid/core";
 import type { ColumnLayout, LaidOutColumn } from "./layout.ts";
 import { ROW_NUMBER_FIELD } from "./layout.ts";
 import type { SelectionModel } from "./selection.ts";
@@ -236,6 +237,7 @@ function textX(x: number, width: number, pad: number, align: LaidOutColumn["alig
 
 function formatValue(value: unknown, col: LaidOutColumn): string {
   if (value == null || value === "") return "";
+  if (col.def.type === "date" && typeof value === "number") return formatDate(value);
   if (typeof value === "number" && Number.isFinite(value)) {
     if (col.def.agg === "avg" || !Number.isInteger(value)) return numberFmt.format(value);
     return numberFmt.format(value);

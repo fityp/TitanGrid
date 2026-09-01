@@ -1,5 +1,6 @@
 import { MegaGrid, type ColumnDef, type GridApi, type GridOptions } from "@megagrid/grid";
 import { generateRows } from "./data.ts";
+import { generateMegaDataset, type MegaDataset } from "./mega.ts";
 import { SAMPLES, extraData } from "./payloads.ts";
 import "./style.css";
 
@@ -106,6 +107,10 @@ app.innerHTML = `
           <button data-n="250000" class="on">250k</button>
           <button data-n="1000000">1M</button>
         </div>
+        <div class="pg-actions" style="margin-top:8px">
+          <button id="mega-set">Mega 1M × 100</button>
+        </div>
+        <p class="pg-copy" style="margin-top:8px">Mega: 1 million nested rows, 100 columns. Expand a team, then click a row for the full record.</p>
       </section>
       <section>
         <h2>Column filters</h2>
@@ -221,7 +226,9 @@ let currentN = 250_000;
 let cachedRows: ReturnType<typeof generateRows> | null = null;
 let cachedN = 0;
 let genMs = 0;
-let mode: "perf" | "payload" = "perf";
+let mode: "perf" | "payload" | "mega" = "perf";
+let megaCache: MegaDataset | null = null;
+let megaGenMs = 0;
 
 const jsonBox = document.querySelector("#payload-json") as HTMLTextAreaElement;
 const jsonError = document.querySelector("#payload-error") as HTMLElement;
@@ -248,6 +255,7 @@ function createGrid(options: GridOptions, metricsHtml: (stats: { ingestMs: numbe
 
 function reload(n: number, regen: boolean) {
   mode = "perf";
+  document.querySelector("#mega-set")?.classList.remove("on");
   currentN = n;
   if (regen || !cachedRows || cachedN !== n) {
     metrics.textContent = `Generating ${n.toLocaleString()} rows…`;
@@ -275,6 +283,7 @@ function reload(n: number, regen: boolean) {
 
 function loadPayload(payload: unknown, label: string) {
   mode = "payload";
+  document.querySelector("#mega-set")?.classList.remove("on");
   jsonError.textContent = "";
   try {
     jsonBox.value = JSON.stringify(payload, null, 2);
@@ -304,6 +313,38 @@ for (const sample of SAMPLES) {
   sampleBox.appendChild(b);
 }
 
+async function loadMega() {
+  mode = "mega";
+  jsonError.textContent = "";
+  sampleBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
+  document.querySelectorAll("#sizes button").forEach((b) => b.classList.remove("on"));
+  document.querySelector("#mega-set")?.classList.add("on");
+  if (!megaCache) {
+    metrics.textContent = "Generating 1M × 100 nested rows…";
+    await new Promise((r) => setTimeout(r, 40));
+    cachedRows = null;
+    cachedN = 0;
+    const t0 = performance.now();
+    megaCache = generateMegaDataset();
+    megaGenMs = performance.now() - t0;
+  }
+  createGrid(
+    {
+      columns: megaCache.columns,
+      store: megaCache.store,
+      tree: megaCache.tree,
+      rowDetail: true,
+      defaultColDef: { sortable: true, filterable: true, resizable: true, editable: false },
+    },
+    (stats) => `
+        <span>1M × 100 nested</span>
+        <span>gen ${megaGenMs.toFixed(0)}ms</span>
+        <span>query ${stats.totalMs.toFixed(1)}ms</span>
+        <span>shown ${stats.resultRows.toLocaleString()}</span>
+      `,
+  );
+}
+
 document.querySelector("#payload-load")!.addEventListener("click", () => {
   jsonError.textContent = "";
   sampleBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
@@ -315,8 +356,13 @@ document.querySelector("#payload-load")!.addEventListener("click", () => {
   }
 });
 
+document.querySelector("#mega-set")!.addEventListener("click", () => {
+  void loadMega();
+});
+
 document.querySelector("#payload-perf")!.addEventListener("click", () => {
   sampleBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
+  document.querySelector("#mega-set")?.classList.remove("on");
   document.querySelectorAll("#sizes button").forEach((b) => {
     b.classList.toggle("on", (b as HTMLButtonElement).dataset.n === String(currentN));
   });
@@ -326,6 +372,7 @@ document.querySelector("#payload-perf")!.addEventListener("click", () => {
 document.querySelector("#sizes")!.addEventListener("click", (e) => {
   const btn = (e.target as HTMLElement).closest("button");
   if (!btn) return;
+  document.querySelector("#mega-set")?.classList.remove("on");
   document.querySelectorAll("#sizes button").forEach((b) => b.classList.toggle("on", b === btn));
   sampleBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
   reload(Number(btn.dataset.n), true);
@@ -345,6 +392,8 @@ document.querySelector("#theme")!.addEventListener("click", () => {
     } catch {
       reload(currentN, false);
     }
+  } else if (mode === "mega") {
+    void loadMega();
   } else {
     reload(currentN, false);
   }

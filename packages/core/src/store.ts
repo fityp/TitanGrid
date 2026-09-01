@@ -225,6 +225,12 @@ export class ColumnStore {
     this.uniqueCache.set(field, out);
     return out;
   }
+
+  getRow(row: number): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const field of this.fields) out[field] = this.get(field, row);
+    return out;
+  }
 }
 
 function encodeStringAt(
@@ -374,6 +380,71 @@ export function ingest(
   }
 
   return new ColumnStore(n, fields, types, vectors);
+}
+
+/** Build a store from pre-packed column vectors (no row-object pass). */
+export function createColumnStore(
+  rowCount: number,
+  columns: Array<{ field: Field; type: DataType; vector: Vector }>,
+): ColumnStore {
+  const fields = columns.map((c) => c.field);
+  const types = new Map<Field, DataType>();
+  const vectors = new Map<Field, Vector>();
+  for (const col of columns) {
+    types.set(col.field, col.type);
+    vectors.set(col.field, col.vector);
+  }
+  return new ColumnStore(rowCount, fields, types, vectors);
+}
+
+export function stringVector(rowCount: number, valueAt: (row: number) => string | null): Vector {
+  const codes = new Uint32Array(rowCount);
+  const dictionary: string[] = [];
+  const dictionaryLower: string[] = [];
+  const dictIndex = new Map<string, number>();
+  const vec: Extract<Vector, { kind: "string" }> = {
+    kind: "string",
+    codes,
+    dictionary,
+    dictionaryLower,
+    dictIndex,
+  };
+  for (let i = 0; i < rowCount; i++) {
+    const v = valueAt(i);
+    encodeStringAt(vec, i, v == null ? EMPTY : v);
+  }
+  return vec;
+}
+
+export function numberVector(rowCount: number, valueAt: (row: number) => number | null): Vector {
+  const values = new Float64Array(rowCount);
+  const nulls = new Uint8Array(rowCount);
+  for (let i = 0; i < rowCount; i++) {
+    const v = valueAt(i);
+    if (v == null || !Number.isFinite(v)) nulls[i] = 1;
+    else values[i] = v;
+  }
+  return { kind: "number", values, nulls };
+}
+
+export function booleanVector(rowCount: number, valueAt: (row: number) => boolean | null): Vector {
+  const values = new Uint8Array(rowCount);
+  for (let i = 0; i < rowCount; i++) {
+    const v = valueAt(i);
+    values[i] = v == null ? 2 : v ? 1 : 0;
+  }
+  return { kind: "boolean", values };
+}
+
+export function dateVector(rowCount: number, valueAt: (row: number) => number | null): Vector {
+  const values = new Float64Array(rowCount);
+  const nulls = new Uint8Array(rowCount);
+  for (let i = 0; i < rowCount; i++) {
+    const v = valueAt(i);
+    if (v == null || !Number.isFinite(v)) nulls[i] = 1;
+    else values[i] = v;
+  }
+  return { kind: "date", values, nulls };
 }
 
 function sparklineWidth(rows: Record<string, unknown>[], field: Field): number {
