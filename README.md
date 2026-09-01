@@ -28,11 +28,7 @@ TitanGrid.create(document.getElementById("host")!, {
 });
 ```
 
-Give the host element a height.
-
 ### HTML, no bundler
-
-Pin a version. Styles are inside this file.
 
 ```html
 <div id="host" style="height: 80vh"></div>
@@ -45,8 +41,6 @@ Pin a version. Styles are inside this file.
   });
 </script>
 ```
-
-Needs `http`/`https`, not a `file://` open. A copy-paste page is in [`examples/embed.html`](examples/embed.html). The demo site also hosts the same file at [https://fityp.github.io/TitanGrid/titangrid.js](https://fityp.github.io/TitanGrid/titangrid.js) (always latest `main`, not a version).
 
 ## Usage
 
@@ -64,27 +58,5 @@ npm install
 npm test
 npm run dev
 ```
-
-`npm run build` emits the library into `packages/grid/dist` (`index.js`, types, `styles.css`, and the browser file `titangrid.js`).
-
-## Publish to npm
-
-One-time:
-
-1. Create an [npm](https://www.npmjs.com) account and enable 2FA.
-2. From a clean tree: `npm login`, then `npm run build -w titangrid` and `npm publish -w titangrid`.
-3. On [the package settings](https://www.npmjs.com/package/titangrid) → **Trusted Publisher**: GitHub, `fityp` / `TitanGrid`, workflow `publish.yml`.
-
-Each release after that:
-
-1. Bump `version` in `packages/grid/package.json`.
-2. Commit, tag, push:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-The **Publish npm** workflow builds and publishes `titangrid`. jsDelivr picks up the version within a few minutes.
 
 MIT
