@@ -12,7 +12,8 @@ export default defineConfig({
   },
   build: {
     emptyOutDir: false,
-    sourcemap: true,
+    sourcemap: false,
+    minify: true,
     lib: {
       entry: path.resolve(root, "src/cdn.ts"),
       formats: ["es"],

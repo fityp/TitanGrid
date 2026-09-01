@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @titangrid/playground",
-    "test": "npm run test -w @titangrid/core",
+    "test": "npm run test -w @titangrid/core && npm run test -w titangrid",
     "test:watch": "npm run test:watch -w @titangrid/core",
     "build": "npm run build -w titangrid && npm run build -w @titangrid/playground"
   },

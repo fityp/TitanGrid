@@ -20,7 +20,8 @@ export default defineConfig({
   },
   build: {
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: false,
+    minify: false,
     lib: {
       entry: path.resolve(root, "src/index.ts"),
       formats: ["es"],
