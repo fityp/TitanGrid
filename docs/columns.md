@@ -1,6 +1,8 @@
 # Define columns
 
-Columns are declared once, as an array of `ColumnDef` objects, and passed to `MegaGrid.create`. That array is the schema: it decides which keys are ingested from each row, how they are stored, how they look, and which filter UI they get.
+Start with the easy names on a service payload (`heading`, `enable_sorting`, `filter_type`). See **[Load data](data.md)**.
+
+This page is the full engine `ColumnDef` if you need `format`, pinning, or aggregations.
 
 ```ts
 import { MegaGrid, type ColumnDef } from "@megagrid/grid";
@@ -39,7 +41,7 @@ MegaGrid.create(host, {
 { field: "country" }  // reads row.country
 ```
 
-There is no `valueGetter`, no `"user.address.city"` path, and no index-based columns. If your API uses different names, **map the rows** so the keys match `field`. See [Load and map data](data.md).
+There is no `valueGetter` and no `"user.address.city"` path. Nested **rows** (`children` arrays) are inferred — see [Load data](data.md). Nested **fields** on one row should be flattened by your service or will show as extra letter columns if they are extra keys.
 
 ---
 

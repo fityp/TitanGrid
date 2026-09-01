@@ -1,22 +1,31 @@
+import type { BoundTree } from "../bind.ts";
+import type { ColumnStore } from "../store.ts";
+import type { ColumnDef, DisplayModel, QuerySpec, QueryStats } from "../types.ts";
 import { compileExpression } from "./expression.ts";
 import { applyFilters } from "./filter.ts";
 import { applyGroup } from "./group.ts";
 import { applySort } from "./sort.ts";
-import type { ColumnStore } from "../store.ts";
-import type { ColumnDef, DisplayModel, QuerySpec, QueryStats } from "../types.ts";
+import { applyTree } from "./tree.ts";
 
 export class QueryEngine {
   private store: ColumnStore | null = null;
   private columns: ColumnDef[] = [];
+  private tree: BoundTree | null = null;
   private expanded = new Set<string>();
   private lastStats: QueryStats = emptyStats();
   private lastModel: DisplayModel = { mode: "flat", indices: new Uint32Array(0) };
   private allGroupIds: string[] = [];
 
-  setStore(store: ColumnStore, columns: ColumnDef[]): void {
+  setStore(store: ColumnStore, columns: ColumnDef[], tree: BoundTree | null = null): void {
     this.store = store;
     this.columns = columns;
+    this.tree = tree;
     this.expanded.clear();
+    if (tree) {
+      for (let i = 0; i < tree.parent.length; i++) {
+        if (tree.children[i]?.length) this.expanded.add(`t:${i}`);
+      }
+    }
   }
 
   getStore(): ColumnStore | null {
@@ -43,7 +52,9 @@ export class QueryEngine {
       return v === undefined ? null : v;
     }
     const row = m.rows[displayIndex];
-    return row?.kind === "leaf" ? row.sourceIndex : null;
+    if (!row) return null;
+    if (row.kind === "leaf") return row.sourceIndex;
+    return row.sourceIndex ?? null;
   }
 
   displayRowAt(displayIndex: number) {
@@ -118,6 +129,13 @@ export class QueryEngine {
       const grouped = applyGroup(store, sorted, spec.groupBy, this.columns, this.expanded);
       this.allGroupIds = grouped.allIds;
       model = { mode: "tree", rows: grouped.rows };
+    } else if (this.tree) {
+      const labelField = this.columns.find((c) => c.field && !c.field.startsWith("__"))?.field;
+      const nested = applyTree(this.tree, sorted, this.expanded, (row) =>
+        labelField ? store.getString(labelField, row) || `(${row})` : String(row),
+      );
+      this.allGroupIds = nested.allIds;
+      model = { mode: "tree", rows: nested.rows };
     } else {
       this.allGroupIds = [];
       model = { mode: "flat", indices: sorted };

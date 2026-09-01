@@ -1,5 +1,6 @@
-import { MegaGrid, type ColumnDef, type GridApi } from "@megagrid/grid";
+import { MegaGrid, type ColumnDef, type GridApi, type GridOptions } from "@megagrid/grid";
 import { generateRows } from "./data.ts";
+import { SAMPLES, extraData } from "./payloads.ts";
 import "./style.css";
 
 type FilterModel = ReturnType<GridApi["getFilterModel"]>;
@@ -80,12 +81,24 @@ app.innerHTML = `
         <div class="pg-mark">MG</div>
         <div>
           <div class="pg-name">MegaGrid</div>
-          <div class="pg-tag">Enterprise data grid · columnar engine · canvas virtualization</div>
+          <div class="pg-tag">Two-field payload · columnar engine · canvas viewport</div>
         </div>
       </div>
+      <a class="pg-kofi" href="https://ko-fi.com/fityp" target="_blank" rel="noopener noreferrer">Support on Ko-fi</a>
       <div class="pg-metrics" id="metrics">Generating…</div>
     </header>
     <aside class="pg-side">
+      <section>
+        <h2>Easy payload</h2>
+        <p class="pg-copy">Send <b>column_definitions</b> and <b>table_data</b>. Extra data becomes C, D, E. Extra headings stay blank. Nested <b>children</b> become a tree.</p>
+        <div class="pg-actions" id="payload-samples"></div>
+        <textarea class="pg-json" id="payload-json" spellcheck="false"></textarea>
+        <div class="pg-actions" style="margin-top:8px">
+          <button id="payload-load">Load JSON</button>
+          <button id="payload-perf">Back to 250k</button>
+        </div>
+        <div class="pg-json-error" id="payload-error"></div>
+      </section>
       <section>
         <h2>Dataset</h2>
         <div class="pg-seg" id="sizes">
@@ -197,7 +210,7 @@ function renderColToggles() {
     input.checked = !col.hide;
     input.addEventListener("change", () => {
       col.hide = !input.checked;
-      reload(currentN, false);
+      if (mode === "perf") reload(currentN, false);
     });
     lab.append(input, col.header ?? col.field);
     colBox.appendChild(lab);
@@ -208,12 +221,34 @@ let currentN = 250_000;
 let cachedRows: ReturnType<typeof generateRows> | null = null;
 let cachedN = 0;
 let genMs = 0;
+let mode: "perf" | "payload" = "perf";
 
-function reload(n: number, regen: boolean) {
-  currentN = n;
+const jsonBox = document.querySelector("#payload-json") as HTMLTextAreaElement;
+const jsonError = document.querySelector("#payload-error") as HTMLElement;
+jsonBox.value = JSON.stringify(extraData, null, 2);
+
+function createGrid(options: GridOptions, metricsHtml: (stats: { ingestMs: number; totalMs: number; resultRows: number }) => string) {
   grid?.destroy();
   host.innerHTML = "";
   filterBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
+  grid = MegaGrid.create(host, {
+    ...options,
+    theme,
+    rowHeight: 28,
+    floatingFilters: true,
+    rowNumbers: true,
+    onReady: (next) => {
+      api = next;
+    },
+    onStats: (stats) => {
+      metrics.innerHTML = metricsHtml(stats);
+    },
+  });
+}
+
+function reload(n: number, regen: boolean) {
+  mode = "perf";
+  currentN = n;
   if (regen || !cachedRows || cachedN !== n) {
     metrics.textContent = `Generating ${n.toLocaleString()} rows…`;
     const tGen = performance.now();
@@ -222,33 +257,77 @@ function reload(n: number, regen: boolean) {
     genMs = performance.now() - tGen;
   }
   const data = cachedRows;
-  grid = MegaGrid.create(host, {
-    columns: columns.map((c) => ({ ...c })),
-    data,
-    theme,
-    rowHeight: 28,
-    floatingFilters: true,
-    rowNumbers: true,
-    defaultColDef: { sortable: true, filterable: true, resizable: true, editable: true },
-    onReady: (next) => {
-      api = next;
+  createGrid(
+    {
+      columns: columns.map((c) => ({ ...c })),
+      data,
+      defaultColDef: { sortable: true, filterable: true, resizable: true, editable: true },
     },
-    onStats: (stats) => {
-      metrics.innerHTML = `
+    (stats) => `
         <span>${n.toLocaleString()} rows</span>
         <span>gen ${genMs.toFixed(0)}ms</span>
         <span>ingest ${stats.ingestMs.toFixed(0)}ms</span>
         <span>query ${stats.totalMs.toFixed(1)}ms</span>
         <span>shown ${stats.resultRows.toLocaleString()}</span>
-      `;
-    },
-  });
+      `,
+  );
 }
+
+function loadPayload(payload: unknown, label: string) {
+  mode = "payload";
+  jsonError.textContent = "";
+  try {
+    jsonBox.value = JSON.stringify(payload, null, 2);
+  } catch {
+    /* keep textarea */
+  }
+  document.querySelectorAll("#sizes button").forEach((b) => b.classList.remove("on"));
+  const options: GridOptions = Array.isArray(payload)
+    ? { table_data: payload }
+    : { ...(payload as GridOptions) };
+  createGrid(options, (stats) => `
+        <span>${label}</span>
+        <span>ingest ${stats.ingestMs.toFixed(0)}ms</span>
+        <span>query ${stats.totalMs.toFixed(1)}ms</span>
+        <span>shown ${stats.resultRows.toLocaleString()}</span>
+      `);
+}
+
+const sampleBox = document.querySelector("#payload-samples") as HTMLElement;
+for (const sample of SAMPLES) {
+  const b = document.createElement("button");
+  b.textContent = sample.label;
+  b.addEventListener("click", () => {
+    sampleBox.querySelectorAll("button").forEach((el) => el.classList.toggle("on", el === b));
+    loadPayload(sample.payload, sample.label);
+  });
+  sampleBox.appendChild(b);
+}
+
+document.querySelector("#payload-load")!.addEventListener("click", () => {
+  jsonError.textContent = "";
+  sampleBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
+  try {
+    const parsed: unknown = JSON.parse(jsonBox.value);
+    loadPayload(parsed, "Pasted JSON");
+  } catch (err) {
+    jsonError.textContent = err instanceof Error ? err.message : String(err);
+  }
+});
+
+document.querySelector("#payload-perf")!.addEventListener("click", () => {
+  sampleBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
+  document.querySelectorAll("#sizes button").forEach((b) => {
+    b.classList.toggle("on", (b as HTMLButtonElement).dataset.n === String(currentN));
+  });
+  reload(currentN, false);
+});
 
 document.querySelector("#sizes")!.addEventListener("click", (e) => {
   const btn = (e.target as HTMLElement).closest("button");
   if (!btn) return;
   document.querySelectorAll("#sizes button").forEach((b) => b.classList.toggle("on", b === btn));
+  sampleBox.querySelectorAll("button").forEach((el) => el.classList.remove("on"));
   reload(Number(btn.dataset.n), true);
 });
 
@@ -260,7 +339,15 @@ document.querySelector("#ungroup")!.addEventListener("click", () => api?.setGrou
 document.querySelector("#theme")!.addEventListener("click", () => {
   theme = theme === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = theme;
-  reload(currentN, false);
+  if (mode === "payload") {
+    try {
+      loadPayload(JSON.parse(jsonBox.value), "Pasted JSON");
+    } catch {
+      reload(currentN, false);
+    }
+  } else {
+    reload(currentN, false);
+  }
 });
 document.querySelector("#csv")!.addEventListener("click", () => {
   const csv = api?.exportCsv() ?? "";

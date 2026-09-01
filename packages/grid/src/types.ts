@@ -1,8 +1,10 @@
-import type { ColumnDef, ColumnFilter, Field, FilterModel, QueryStats, Sort } from "@megagrid/core";
+import type { ColumnDef, ColumnFilter, EasyColumn, Field, FilterModel, QueryStats, Sort } from "@megagrid/core";
 
 export interface GridOptions {
-  columns: ColumnDef[];
-  data?: Record<string, unknown>[];
+  columns?: ColumnDef[];
+  data?: unknown;
+  column_definitions?: EasyColumn[];
+  table_data?: unknown;
   rowHeight?: number;
   headerHeight?: number;
   floatingFilterHeight?: number;
@@ -37,7 +39,8 @@ export interface CellRange {
 }
 
 export interface GridApi {
-  setData(rows: Record<string, unknown>[]): void;
+  setData(rows: unknown): void;
+  setPayload(payload: unknown): void;
   setGroupBy(fields: Field[]): void;
   setQuickFilter(text: string): void;
   setExpression(expr: string | null): void;

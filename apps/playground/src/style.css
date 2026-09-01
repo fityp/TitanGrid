@@ -46,7 +46,7 @@ body,
   grid-area: top;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
   padding: 0 18px;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
@@ -81,9 +81,28 @@ body,
   font-size: 12px;
 }
 
+.pg-kofi {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ff5e5b;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pg-kofi:hover {
+  filter: brightness(1.08);
+}
+
 .pg-metrics {
   display: flex;
   gap: 14px;
+  margin-left: auto;
   color: var(--muted);
   font: 12px/1 "IBM Plex Mono", ui-monospace, monospace;
 }
@@ -175,6 +194,29 @@ body,
   gap: 8px;
   align-items: center;
   color: var(--text);
+}
+
+.pg-json {
+  width: 100%;
+  min-height: 140px;
+  font: 11px/1.45 "IBM Plex Mono", ui-monospace, monospace;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.pg-json-error {
+  color: #ff6b7a;
+  font-size: 12px;
+  min-height: 1.2em;
+  margin-top: 6px;
+}
+
+.pg-json-error:empty {
+  display: none;
 }
 
 .pg-main {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { bindPayload } from "../src/bind.ts";
 import { compileExpression } from "../src/query/expression.ts";
 import { QueryEngine } from "../src/query/engine.ts";
 import { ingest } from "../src/store.ts";
@@ -86,6 +87,30 @@ describe("QueryEngine", () => {
     expect(nested?.kind).toBe("group");
     if (nested?.kind !== "group") return;
     expect(nested.depth).toBe(1);
+  });
+
+  it("shows nested payload rows as an expandable tree", () => {
+    const bound = bindPayload({
+      column_definitions: [{ heading: "Name", field: "name" }],
+      table_data: [
+        {
+          name: "Americas",
+          children: [{ name: "USA" }, { name: "Canada" }],
+        },
+      ],
+    });
+    const engine = new QueryEngine();
+    engine.setStore(ingest(bound.rows, bound.columns), bound.columns, bound.tree);
+    engine.run(defaultQuerySpec());
+    expect(engine.displayedCount()).toBe(3);
+    const root = engine.displayRowAt(0);
+    expect(root?.kind).toBe("group");
+    if (root?.kind !== "group") return;
+    expect(root.key).toBe("Americas");
+    expect(root.sourceIndex).toBe(0);
+    engine.toggleExpanded(root.id);
+    engine.run(defaultQuerySpec());
+    expect(engine.displayedCount()).toBe(1);
   });
 });
 

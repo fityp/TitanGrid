@@ -1,19 +1,36 @@
 # MegaGrid
 
-A high-performance JavaScript data grid. Rows are ingested into a **columnar typed-array store**. Filter, sort, and group run on index arrays. The viewport is **painted to canvas** so scrolling does not create a DOM node per cell.
+[Support on Ko-fi](https://ko-fi.com/fityp)
 
-| Package | Role |
-| --- | --- |
-| `@megagrid/core` | Column store + query engine (no DOM) |
-| `@megagrid/grid` | Canvas grid, headers, filters, editors, selection |
-| `@megagrid/playground` | 250k-row demo at [http://localhost:5173](http://localhost:5173) |
+A high-performance JavaScript data grid. You send **column definitions** and **table data**. MegaGrid fills in the rest, packs columns into typed arrays, and paints the viewport to canvas.
 
-## Documentation
+**Live demo (no Node):** [https://fityp.github.io/MegaGrid/](https://fityp.github.io/MegaGrid/)
 
-- **[Define columns](docs/columns.md)** — every `ColumnDef` property, types, filters, pinning, formatting
-- **[Load and map data](docs/data.md)** — row shape, `setData`, renaming keys, nested JSON, dates, nulls
+Turn on GitHub Pages once: repo **Settings → Pages → Source: GitHub Actions**. After that, every push to `main` publishes the playground as static HTML/JS.
 
-## Quick start
+## The only payload you need
+
+```ts
+MegaGrid.create(document.getElementById("host")!, {
+  column_definitions: [
+    { heading: "Name", field: "name", enable_sorting: true, filter_type: "text" },
+    { heading: "Score", field: "score", type: "number", filter_type: "number" },
+  ],
+  table_data: [
+    { name: "Ada", score: 91 },
+    { name: "Tom", score: 74, city: "Paris" },
+  ],
+});
+```
+
+- Extra data (`city`) becomes column **C**.
+- Extra headings with no data still show, with blank cells.
+- No definitions at all: object keys become columns, or arrays become **A**, **B**, **C**.
+- Nested `children` become an expandable tree.
+
+Full rules: **[Load data](docs/data.md)** · **[Column fields](docs/columns.md)**
+
+## Local playground
 
 ```bash
 npm install
@@ -21,55 +38,15 @@ npm test
 npm run dev
 ```
 
-Playground: [http://localhost:5173](http://localhost:5173)
+Open [http://localhost:5173](http://localhost:5173). The GitHub demo is the same app, built to static files (the browser runs it; you do not install Node to view it).
 
-```ts
-import { MegaGrid, type ColumnDef } from "@megagrid/grid";
-
-const columns: ColumnDef[] = [
-  { field: "athlete", header: "Athlete", width: 170, pinned: "left", filter: "text" },
-  { field: "country", header: "Country", width: 176, filter: "set" },
-  { field: "gold", header: "Gold", type: "number", width: 80, agg: "sum", filter: "number" },
-];
-
-const rows = [
-  { athlete: "Alex Nguyen", country: "China", gold: 3 },
-  { athlete: "Sam Patel", country: "Jamaica", gold: 1 },
-];
-
-const grid = MegaGrid.create(document.getElementById("host")!, {
-  columns,
-  data: rows,
-  floatingFilters: true,
-  defaultColDef: { sortable: true, filterable: true, resizable: true },
-  onReady: (api) => {
-    // Replace the dataset later without recreating the grid:
-    // api.setData(nextRows);
-  },
-});
-```
-
-**The contract:** each `ColumnDef.field` is a **top-level key** on every row object. MegaGrid does not read nested paths like `"user.name"`. Flatten or rename first — see [Load and map data](docs/data.md).
-
-## Repo layout
+## Repo
 
 ```
-packages/core     Column store + query engine
+packages/core     Bind payload + column store + query engine
 packages/grid     Canvas UI
-apps/playground   Demo app
-docs/             Column and data guides
+apps/playground   Demo
+docs/             Guides
 ```
 
-## Scripts
-
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Vite playground |
-| `npm test` | Engine tests |
-| `npm run build` | Build core, grid, playground |
-
-Requires Node 20+.
-
-## License
-
-MIT
+MIT licensed.

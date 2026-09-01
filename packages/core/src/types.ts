@@ -73,6 +73,8 @@ export interface GroupRow {
   count: number;
   expanded: boolean;
   aggregates: Record<string, number | string | null>;
+  /** When set, this group is also a data row (nested payload). */
+  sourceIndex?: number;
 }
 
 export interface LeafRow {

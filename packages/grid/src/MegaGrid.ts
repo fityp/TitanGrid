@@ -1,9 +1,12 @@
 import {
+  bindPayload,
   defaultQuerySpec,
   ingest,
   isFilterActive,
+  isGridPayload,
   QueryEngine,
   simpleFilterToModel,
+  type BoundTree,
   type ColumnDef,
   type ColumnFilter,
   type ColumnFilterModel,
@@ -60,6 +63,7 @@ export class MegaGrid {
   private ro?: ResizeObserver;
   private popup!: FilterPopup;
   private filterRaf = 0;
+  private tree: BoundTree | null = null;
 
   static create(parent: HTMLElement, options: GridOptions): MegaGrid {
     return new MegaGrid(parent, options);
@@ -81,8 +85,7 @@ export class MegaGrid {
     this.buildChrome();
     this.popup = new FilterPopup(this.root);
     this.bind();
-    this.setColumns(options.columns);
-    if (options.data) this.setData(options.data);
+    this.loadFromOptions(options);
 
     this.api = this.createApi();
     options.onReady?.(this.api);
@@ -92,6 +95,7 @@ export class MegaGrid {
   private createApi(): GridApi {
     return {
       setData: (rows) => this.setData(rows),
+      setPayload: (payload) => this.loadFromOptions(payload),
       setGroupBy: (fields) => this.setGroupBy(fields),
       setQuickFilter: (text) => {
         this.spec.quickFilter = text;
@@ -224,10 +228,49 @@ export class MegaGrid {
     this.rebuildGroupBar();
   }
 
-  setData(rows: Record<string, unknown>[]): void {
+  private loadFromOptions(input: unknown): void {
+    const bound = bindPayload(input);
+    this.tree = bound.tree;
+    this.setColumns(bound.columns.length ? bound.columns : (this.options.columns ?? []));
+    this.applyRows(bound.rows);
+  }
+
+  setData(rows: unknown): void {
+    if (isGridPayload(rows)) {
+      this.loadFromOptions(rows as GridOptions);
+      return;
+    }
+    const bound = bindPayload({
+      column_definitions: this.columns
+        .filter((c) => c.field !== ROW_NUMBER_FIELD)
+        .map((c) => ({
+          field: c.field,
+          header: c.header,
+          type: c.type,
+          filter: c.filter,
+          width: c.width,
+          pinned: c.pinned,
+          agg: c.agg,
+          align: c.align,
+          format: c.format,
+          enable_sorting: c.sortable,
+          enable_filtering: c.filterable,
+          enable_editing: c.editable,
+          enable_resizing: c.resizable,
+          enable_grouping: c.groupable,
+          hide: c.hide,
+        })),
+      table_data: rows,
+    });
+    this.tree = bound.tree;
+    this.setColumns(bound.columns);
+    this.applyRows(bound.rows);
+  }
+
+  private applyRows(rows: Record<string, unknown>[]): void {
     const t0 = performance.now();
     const store = ingest(rows, this.columns.filter((c) => c.field !== ROW_NUMBER_FIELD));
-    this.engine.setStore(store, this.columns);
+    this.engine.setStore(store, this.columns, this.tree);
     this.engine.setIngestMs(performance.now() - t0);
     this.recompute();
   }

@@ -144,6 +144,19 @@ function paintColumn(
     if (display.kind === "group") {
       if (col.index === firstDataColIndex(frame.layout)) {
         drawGroupLabel(frame, display, x, y, col.width);
+      } else if (display.sourceIndex != null) {
+        const raw = store.get(field, display.sourceIndex);
+        const text = col.def.format
+          ? col.def.format(raw, display.sourceIndex)
+          : formatValue(raw, col);
+        ctx.fillStyle = theme.text;
+        ctx.textAlign = col.align;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x + 2, y, col.width - 4, rowHeight);
+        ctx.clip();
+        ctx.fillText(text, textX(x, col.width, pad, col.align), cy);
+        ctx.restore();
       } else if (display.aggregates[field] != null) {
         ctx.fillStyle = theme.text;
         ctx.textAlign = col.align;
@@ -165,11 +178,15 @@ function paintColumn(
       : formatValue(raw, col);
     ctx.fillStyle = theme.text;
     ctx.textAlign = col.align;
+    const leafIndent =
+      display.depth && col.index === firstDataColIndex(frame.layout) && col.align === "left"
+        ? display.depth * 16
+        : 0;
     ctx.save();
     ctx.beginPath();
     ctx.rect(x + 2, y, col.width - 4, rowHeight);
     ctx.clip();
-    ctx.fillText(text, textX(x, col.width, pad, col.align), cy);
+    ctx.fillText(text, textX(x, col.width, pad, col.align) + leafIndent, cy);
     ctx.restore();
   }
 }
