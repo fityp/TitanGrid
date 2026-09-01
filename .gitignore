@@ -1,5 +1,7 @@
 node_modules
 dist
+.skill-archive
+packages/grid/README.md
 *.prepack-backup
 .DS_Store
 *.local

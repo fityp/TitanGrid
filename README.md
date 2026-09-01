@@ -1,10 +1,14 @@
+<p align="center">
+  <img src="docs/logo.png" alt="TitanGrid" width="240">
+</p>
+
 # TitanGrid
 
 [Support on Ko-fi](https://ko-fi.com/fityp)
 
 A high-performance JavaScript data grid. You send **column definitions** and **table data**. TitanGrid fills in the rest, packs columns into typed arrays, and paints the viewport to canvas.
 
-**[Live demo](https://fityp.github.io/TitanGrid/)**
+**[Live demo](https://fityp.github.io/TitanGrid/)** · **[GitHub](https://github.com/fityp/TitanGrid)**
 
 ## Use it in your project
 
@@ -33,7 +37,7 @@ TitanGrid.create(document.getElementById("host")!, {
 ```html
 <div id="host" style="height: 80vh"></div>
 <script type="module">
-  import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.2.1/dist/titangrid.js";
+  import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.2.2/dist/titangrid.js";
 
   TitanGrid.create(document.getElementById("host"), {
     column_definitions: [/* … */],
