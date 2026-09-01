@@ -24,6 +24,17 @@ export interface ColumnDef {
   editable?: boolean;
   groupable?: boolean;
   hide?: boolean;
+  /** Show this column in the grid. `false` is the same as `hide: true`. */
+  visible?: boolean;
+  /**
+   * Grid and/or row-detail visibility.
+   * `true` / `"all"` both, `false` / `"none"` neither, `"grid"` grid only, `"detail"` modal only.
+   */
+  visibility?: boolean | "all" | "grid" | "detail" | "none";
+  /** Show this field in the row-detail modal. Default true. */
+  detailVisible?: boolean;
+  /** HTML for this field in the row-detail modal. `{{value}}` and other field names work. */
+  detailTemplate?: string;
   /** `true` picks a default by column type (set/multi). */
   filter?: boolean | "text" | "number" | "date" | "set" | "multi";
   agg?: AggName;

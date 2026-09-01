@@ -1,10 +1,12 @@
-import type { BoundTree, ColumnDef, ColumnFilter, ColumnStore, EasyColumn, Field, FilterModel, QueryStats, Sort } from "@megagrid/core";
+import type { BoundTree, ColumnDef, ColumnFilter, ColumnStore, EasyColumn, EasyRow, Field, FilterModel, QueryStats, Sort } from "@megagrid/core";
 
 export interface GridOptions {
   columns?: ColumnDef[];
   data?: unknown;
   column_definitions?: EasyColumn[];
   table_data?: unknown;
+  row_definition?: EasyRow;
+  rowDefinition?: EasyRow;
   store?: ColumnStore;
   tree?: BoundTree | null;
   rowHeight?: number;

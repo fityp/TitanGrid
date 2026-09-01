@@ -62,10 +62,49 @@ export const objectsOnly = {
   ],
 };
 
+export const detailHtml = {
+  column_definitions: [
+    {
+      heading: "Name",
+      field: "name",
+      filter_type: "text",
+      detail_template: "<strong>{{value}}</strong>",
+    },
+    {
+      heading: "Score",
+      field: "score",
+      type: "number",
+      filter_type: "number",
+      detail_template: "<span>{{value}}</span> / 100",
+    },
+    {
+      heading: "Status",
+      field: "status",
+      filter_type: "set",
+      detail_template: '<span class="mg-pill">{{value}}</span>',
+    },
+    {
+      heading: "Bio",
+      field: "bio",
+      visibility: "detail",
+      detail_template: "<p>{{value}}</p>",
+    },
+  ],
+  row_definition: {
+    title_template: "{{name}} · {{status}}",
+  },
+  table_data: [
+    { name: "Ada Lovelace", score: 91, status: "Active", bio: "Wrote the first algorithm." },
+    { name: "Tom Hughes", score: 74, status: "Hold", bio: "Prefers nested payloads." },
+    { name: "Sam Patel", score: 88, status: "Active", bio: "Clicks rows for the full record." },
+  ],
+};
+
 export const SAMPLES = [
   { id: "extra-data", label: "Extra data → C, D", payload: extraData },
   { id: "extra-headings", label: "Extra headings", payload: extraHeadings },
   { id: "nested", label: "Nested rows", payload: nestedRows },
   { id: "matrix", label: "Array rows → A, B, C", payload: matrix },
   { id: "objects", label: "Objects, no defs", payload: objectsOnly },
+  { id: "detail", label: "Detail HTML", payload: detailHtml },
 ] as const;

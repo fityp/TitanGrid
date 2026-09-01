@@ -529,3 +529,21 @@
   padding-top: 4px;
   overflow-wrap: anywhere;
 }
+
+.mg-detail-html p {
+  margin: 0 0 8px;
+}
+
+.mg-detail-html p:last-child {
+  margin-bottom: 0;
+}
+
+.mg-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mg-accent) 22%, transparent);
+  color: var(--mg-text);
+  font-size: 12px;
+  font-weight: 600;
+}

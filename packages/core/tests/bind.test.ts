@@ -101,4 +101,20 @@ describe("bindPayload", () => {
     expect(bound.columns.map((c) => c.header)).toEqual(["Name", "B", "C"]);
     expect(bound.rows[0]).toEqual({ A: "Ada", B: 3, C: "Paris" });
   });
+
+  it("maps visibility and detail templates onto columns", () => {
+    const bound = bindPayload({
+      column_definitions: [
+        { heading: "Name", field: "name", visible: true, detail_template: "<b>{{value}}</b>" },
+        { heading: "Bio", field: "bio", visibility: "detail" },
+        { heading: "Internal", field: "secret", visibility: "none" },
+      ],
+      row_definition: { title_template: "{{name}}" },
+      table_data: [{ name: "Ada", bio: "Hi", secret: "x" }],
+    });
+    expect(bound.columns.map((c) => c.hide)).toEqual([false, true, true]);
+    expect(bound.columns.map((c) => c.detailVisible)).toEqual([true, true, false]);
+    expect(bound.columns[0]!.detailTemplate).toBe("<b>{{value}}</b>");
+    expect(bound.row?.titleTemplate).toBe("{{name}}");
+  });
 });

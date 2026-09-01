@@ -52,7 +52,26 @@ Use these names (camelCase aliases work too):
 | `enable_grouping` | Drag header to group bar | `true` |
 | `width` | Pixels | `128` |
 | `pinned` | `"left"` or `"right"` | — |
+| `visible` | Show in the grid (`false` hides the column) | `true` |
+| `visibility` | `all` `grid` `detail` `none` — grid and/or row modal | `all` |
+| `detail_visible` | Show in the row-detail modal | `true` |
+| `detail_template` | HTML for this field in the modal. `{{value}}`, `{{heading}}`, and other field names work. Values are escaped. | plain text |
 | `agg` | `sum` `avg` `min` `max` `count` when grouped | — |
+
+Optional `row_definition` (alongside the two payload fields) lays out the whole modal:
+
+```json
+{
+  "column_definitions": [
+    { "heading": "Name", "field": "name", "detail_template": "<strong>{{value}}</strong>" },
+    { "heading": "Bio", "field": "bio", "visibility": "detail", "detail_template": "<p>{{value}}</p>" }
+  ],
+  "row_definition": { "title_template": "{{name}}" },
+  "table_data": [{ "name": "Ada", "bio": "Wrote the first algorithm." }]
+}
+```
+
+`row_definition.template` replaces the field list with one HTML block. Tokens are the row's fields. Click a row to open the modal (`rowDetail: true`).
 
 ## Nested rows
 

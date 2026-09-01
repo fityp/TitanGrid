@@ -62,7 +62,9 @@ There is no `valueGetter` and no `"user.address.city"` path. Nested **rows** (`c
 | `resizable` | `boolean` | from `defaultColDef` | Drag the header edge. |
 | `editable` | `boolean` | from `defaultColDef` | Double-click a cell to edit. Writes back into the column store. |
 | `groupable` | `boolean` | `true` unless set | `false` disables drag-to-group on that header. |
-| `hide` | `boolean` | `false` | Omit the column from the layout. |
+| `hide` | `boolean` | `false` | Omit the column from the layout. Prefer `visible` / `visibility` on the easy payload. |
+| `detailVisible` | `boolean` | `true` | Show this field in the row-detail modal. |
+| `detailTemplate` | `string` | — | HTML snippet for this field in the modal. `{{value}}` and other row fields; values are escaped. |
 | `agg` | `"sum"` \| `"avg"` \| `"min"` \| `"max"` \| `"count"` \| `"first"` \| `"last"` | — | Value shown on group rows when grouping. |
 | `align` | `"left"` \| `"center"` \| `"right"` | `"left"` | Cell text alignment. |
 | `format` | `(value, sourceIndex) => string` | built-in | Display only. Does **not** change stored values or filters. |

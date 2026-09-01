@@ -1,11 +1,13 @@
 import {
   bindPayload,
+  bindRowDefinition,
   defaultQuerySpec,
   formatDate,
   ingest,
   isFilterActive,
   isGridPayload,
   QueryEngine,
+  renderTemplate,
   simpleFilterToModel,
   type BoundTree,
   type ColumnDef,
@@ -15,6 +17,7 @@ import {
   type Field,
   type FilterModel,
   type QuerySpec,
+  type RowDef,
 } from "@megagrid/core";
 import { exportCsv, selectionToTsv } from "./clipboard.ts";
 import {
@@ -70,6 +73,7 @@ export class MegaGrid {
   private detailTitle!: HTMLElement;
   private detailBody!: HTMLElement;
   private pendingClick: { row: number; col: number; x: number; y: number } | null = null;
+  private rowDef: RowDef | null = null;
   private onDocKey = (e: KeyboardEvent) => {
     if (e.key === "Escape") this.closeRowDetail();
   };
@@ -261,6 +265,7 @@ export class MegaGrid {
   }
 
   private applyStore(store: ColumnStore, columns: ColumnDef[], tree: BoundTree | null): void {
+    this.rowDef = bindRowDefinition(this.options.row_definition ?? this.options.rowDefinition);
     this.tree = tree;
     this.setColumns(columns);
     this.engine.setStore(store, this.columns, this.tree);
@@ -271,6 +276,7 @@ export class MegaGrid {
   private loadFromOptions(input: unknown): void {
     const bound = bindPayload(input);
     this.tree = bound.tree;
+    this.rowDef = bound.row ?? bindRowDefinition(this.options.row_definition ?? this.options.rowDefinition);
     this.setColumns(bound.columns.length ? bound.columns : (this.options.columns ?? []));
     this.applyRows(bound.rows);
   }
@@ -299,6 +305,8 @@ export class MegaGrid {
           enable_resizing: c.resizable,
           enable_grouping: c.groupable,
           hide: c.hide,
+          detail_visible: c.detailVisible,
+          detail_template: c.detailTemplate,
         })),
       table_data: rows,
     });
@@ -726,18 +734,45 @@ export class MegaGrid {
   }
 
   private openRowDetail(data: Record<string, unknown>, kind: "leaf" | "group"): void {
-    const titleField = this.columns.find((c) => c.field !== ROW_NUMBER_FIELD)?.field;
-    const title = titleField ? data[titleField] : null;
-    this.detailTitle.textContent = title == null || title === "" ? (kind === "group" ? "Group" : "Row") : String(title);
+    const cols = this.columns.filter((c) => c.field !== ROW_NUMBER_FIELD && c.detailVisible !== false);
+    const titleTpl = this.rowDef?.titleTemplate;
+    if (titleTpl) {
+      this.detailTitle.innerHTML = renderTemplate(titleTpl, data) || (kind === "group" ? "Group" : "Row");
+    } else {
+      const titleField = cols[0]?.field;
+      const title = titleField ? data[titleField] : null;
+      this.detailTitle.textContent = title == null || title === "" ? (kind === "group" ? "Group" : "Row") : String(title);
+    }
+
     this.detailBody.innerHTML = "";
+    if (this.rowDef?.template) {
+      const wrap = document.createElement("div");
+      wrap.className = "mg-detail-html";
+      wrap.innerHTML = renderTemplate(this.rowDef.template, data);
+      this.detailBody.appendChild(wrap);
+      this.detailEl.hidden = false;
+      return;
+    }
+
     const dl = document.createElement("dl");
     dl.className = "mg-detail-list";
-    for (const col of this.columns) {
-      if (col.field === ROW_NUMBER_FIELD) continue;
+    for (const col of cols) {
+      const value = data[col.field];
       const dt = document.createElement("dt");
       dt.textContent = col.header ?? col.field;
       const dd = document.createElement("dd");
-      dd.textContent = formatDetailValue(data[col.field], col.type);
+      if (col.detailTemplate) {
+        dd.className = "mg-detail-html";
+        dd.innerHTML = renderTemplate(col.detailTemplate, {
+          ...data,
+          value,
+          field: col.field,
+          heading: col.header ?? col.field,
+          header: col.header ?? col.field,
+        });
+      } else {
+        dd.textContent = formatDetailValue(value, col.type);
+      }
       dl.append(dt, dd);
     }
     this.detailBody.appendChild(dl);

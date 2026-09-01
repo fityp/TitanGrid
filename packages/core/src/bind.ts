@@ -33,7 +33,30 @@ export interface EasyColumn {
   align?: ColumnDef["align"];
   hide?: boolean;
   hidden?: boolean;
+  visible?: boolean;
+  visibility?: boolean | "all" | "grid" | "detail" | "none";
+  detail_visible?: boolean;
+  detailVisible?: boolean;
+  show_in_detail?: boolean;
+  detail_template?: string;
+  detailTemplate?: string;
+  template?: string;
   format?: ColumnDef["format"];
+}
+
+/** Optional whole-row layout for the detail modal. */
+export interface EasyRow {
+  title?: string;
+  title_template?: string;
+  titleTemplate?: string;
+  template?: string;
+  detail_template?: string;
+  html?: string;
+}
+
+export interface RowDef {
+  titleTemplate?: string;
+  template?: string;
 }
 
 /** Two-field service payload (aliases accepted). */
@@ -45,6 +68,8 @@ export interface GridPayload {
   tableData?: unknown;
   data?: unknown;
   rows?: unknown;
+  row_definition?: EasyRow;
+  rowDefinition?: EasyRow;
 }
 
 export interface BoundTree {
@@ -57,6 +82,7 @@ export interface BoundGrid {
   columns: ColumnDef[];
   rows: Record<string, unknown>[];
   tree: BoundTree | null;
+  row: RowDef | null;
 }
 
 /**
@@ -73,19 +99,19 @@ export function bindPayload(input: unknown): BoundGrid {
 
   if (nested) {
     const flat = flattenNested(list);
-    return finishBind(defs, flat.rows, "object", flat.tree);
+    return withRow(finishBind(defs, flat.rows, "object", flat.tree), payload);
   }
 
   const kind = detectKind(list);
   if (kind === "matrix") {
     const matrix = list as unknown[][];
     const dataWidth = matrixWidth(matrix);
-    return finishBind(defs, matrixToObjects(matrix, Math.max(dataWidth, defs.length)), "matrix", null);
+    return withRow(finishBind(defs, matrixToObjects(matrix, Math.max(dataWidth, defs.length)), "matrix", null), payload);
   }
 
   const objects = list as Record<string, unknown>[];
   const keys = objectKeys(objects);
-  return finishBind(defs, objects, "object", null, keys);
+  return withRow(finishBind(defs, objects, "object", null, keys), payload);
 }
 
 export function excelLetter(index: number): string {
@@ -236,7 +262,7 @@ function finishBind(
   const plan = planColumns(defs, dataKeys, kind);
   const columns = plan.map((p, i) => toColumnDef(p.def, p.field, p.header, i, p.letter));
   const rows = projectRows(sourceRows, plan);
-  return { columns, rows, tree };
+  return { columns, rows, tree, row: null };
 }
 
 interface ColPlan {
@@ -349,6 +375,7 @@ function toColumnDef(def: EasyColumn, field: string, header: string, _index: num
   const editable = def.enable_editing ?? def.editable;
   const resizable = def.enable_resizing ?? def.resizable;
   const groupable = def.enable_grouping ?? def.groupable;
+  const vis = resolveColumnVisibility(def);
   const filter = def.filter_type ?? def.filter;
   return {
     field,
@@ -361,11 +388,53 @@ function toColumnDef(def: EasyColumn, field: string, header: string, _index: num
     editable: editable ?? true,
     resizable: resizable ?? true,
     groupable: groupable ?? true,
-    hide: def.hide ?? def.hidden,
+    hide: !vis.grid,
+    detailVisible: vis.detail,
+    detailTemplate: emptyToUndef(def.detail_template) ?? emptyToUndef(def.detailTemplate) ?? emptyToUndef(def.template),
     filter: filterable === false ? false : filter ?? (letterCol ? "text" : undefined),
     agg: def.agg ?? def.aggregation,
     align: def.align,
     format: def.format,
   };
+}
+
+export function resolveColumnVisibility(def: EasyColumn): { grid: boolean; detail: boolean } {
+  let grid = true;
+  let detail = true;
+  const vis = def.visibility;
+  if (vis === false || vis === "none") {
+    grid = false;
+    detail = false;
+  } else if (vis === "grid") {
+    grid = true;
+    detail = false;
+  } else if (vis === "detail") {
+    grid = false;
+    detail = true;
+  } else if (vis === true || vis === "all") {
+    grid = true;
+    detail = true;
+  }
+  if (def.visible != null) grid = !!def.visible;
+  if (def.hide != null) grid = !def.hide;
+  if (def.hidden != null) grid = !def.hidden;
+  if (def.detail_visible != null) detail = !!def.detail_visible;
+  if (def.detailVisible != null) detail = !!def.detailVisible;
+  if (def.show_in_detail != null) detail = !!def.show_in_detail;
+  return { grid, detail };
+}
+
+export function bindRowDefinition(input: unknown): RowDef | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const r = input as EasyRow;
+  const titleTemplate = emptyToUndef(r.title_template) ?? emptyToUndef(r.titleTemplate) ?? emptyToUndef(r.title);
+  const template = emptyToUndef(r.template) ?? emptyToUndef(r.detail_template) ?? emptyToUndef(r.html);
+  if (!titleTemplate && !template) return null;
+  return { titleTemplate, template };
+}
+
+function withRow(bound: BoundGrid, payload: GridPayload): BoundGrid {
+  const row = bindRowDefinition(payload.row_definition ?? payload.rowDefinition);
+  return row ? { ...bound, row } : bound;
 }
 

@@ -91,7 +91,7 @@ app.innerHTML = `
     <aside class="pg-side">
       <section>
         <h2>Easy payload</h2>
-        <p class="pg-copy">Send <b>column_definitions</b> and <b>table_data</b>. Extra data becomes C, D, E. Extra headings stay blank. Nested <b>children</b> become a tree.</p>
+        <p class="pg-copy">Send <b>column_definitions</b> and <b>table_data</b>. Extra data becomes C, D, E. Extra headings stay blank. Nested <b>children</b> become a tree. Click a row for the detail modal — columns can hide from the grid and still show there with HTML templates.</p>
         <div class="pg-actions" id="payload-samples"></div>
         <textarea class="pg-json" id="payload-json" spellcheck="false"></textarea>
         <div class="pg-actions" style="margin-top:8px">
@@ -244,6 +244,7 @@ function createGrid(options: GridOptions, metricsHtml: (stats: { ingestMs: numbe
     rowHeight: 28,
     floatingFilters: true,
     rowNumbers: true,
+    rowDetail: options.rowDetail !== false,
     onReady: (next) => {
       api = next;
     },
