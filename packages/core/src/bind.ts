@@ -1,4 +1,4 @@
-import type { AggName, ColumnDef, DataType, PinSide } from "./types.ts";
+import type { AggName, ColumnDef, ColumnIcon, DataType, IconAction, PinSide } from "./types.ts";
 
 const CHILD_KEYS = ["children", "items", "rows"] as const;
 
@@ -42,6 +42,44 @@ export interface EasyColumn {
   detailTemplate?: string;
   template?: string;
   format?: ColumnDef["format"];
+  cell_style?: ColumnDef["cellStyle"];
+  cellStyle?: ColumnDef["cellStyle"];
+  icons?: Array<ColumnIcon | EasyIcon>;
+}
+
+export interface EasyIcon {
+  id?: string;
+  url?: ColumnIcon["url"];
+  url_field?: string;
+  urlField?: string;
+  class_name?: string;
+  className?: string;
+  label?: ColumnIcon["label"];
+  color?: string;
+  background?: string;
+  title?: string;
+  placement?: ColumnIcon["placement"];
+  eq?: unknown;
+  in?: unknown[];
+  visible_if?: string;
+  visibleIf?: string;
+  visible?: ColumnIcon["visible"];
+  action?: IconAction | EasyIconAction;
+}
+
+export interface EasyIconAction {
+  type?: IconAction["type"];
+  url?: string;
+  target?: string;
+  method?: string;
+  headers?: Record<string, string>;
+  include_row?: boolean;
+  includeRow?: boolean;
+  include_children?: boolean | IconAction["includeChildren"];
+  includeChildren?: IconAction["includeChildren"];
+  template?: string;
+  title?: string;
+  run?: IconAction["run"];
 }
 
 /** Optional whole-row layout for the detail modal. */
@@ -76,6 +114,8 @@ export interface BoundTree {
   parent: Int32Array;
   children: number[][];
   depths: Uint8Array;
+  /** Child-array key on each parent (`children` / `items` / `rows`). */
+  childKey?: (string | null)[];
 }
 
 export interface BoundGrid {
@@ -85,33 +125,41 @@ export interface BoundGrid {
   row: RowDef | null;
 }
 
+/** Options for {@link bindPayload}. */
+export interface BindOptions {
+  /** When `column_definitions` are present, ignore leftover row keys instead of naming them A, B, C. */
+  strictColumns?: boolean;
+}
+
 /**
  * Turn a service payload (or a raw table) into columns + rows TitanGrid can ingest.
  * One linear pass over the data. Extra headings stay empty; extra data columns
- * get Excel letters (A, B, C, …) by index.
+ * get Excel letters (A, B, C, …) by index unless `strictColumns` is set.
  */
-export function bindPayload(input: unknown): BoundGrid {
+export function bindPayload(input: unknown, options?: BindOptions): BoundGrid {
   const payload = asPayload(input);
   const defs = payload.column_definitions ?? payload.columnDefinitions ?? payload.columns ?? [];
   const raw = payload.table_data ?? payload.tableData ?? payload.data ?? payload.rows ?? [];
   const list = Array.isArray(raw) ? raw : [];
   const nested = detectNested(list);
+  const strict = !!options?.strictColumns && defs.length > 0;
 
   if (nested) {
     const flat = flattenNested(list);
-    return withRow(finishBind(defs, flat.rows, "object", flat.tree), payload);
+    return withRow(finishBind(defs, flat.rows, "object", flat.tree, undefined, strict), payload);
   }
 
   const kind = detectKind(list);
   if (kind === "matrix") {
     const matrix = list as unknown[][];
     const dataWidth = matrixWidth(matrix);
-    return withRow(finishBind(defs, matrixToObjects(matrix, Math.max(dataWidth, defs.length)), "matrix", null), payload);
+    const width = strict ? defs.length : Math.max(dataWidth, defs.length);
+    return withRow(finishBind(defs, matrixToObjects(matrix, width), "matrix", null, undefined, strict), payload);
   }
 
   const objects = list as Record<string, unknown>[];
   const keys = objectKeys(objects);
-  return withRow(finishBind(defs, objects, "object", null, keys), payload);
+  return withRow(finishBind(defs, objects, "object", null, keys, strict), payload);
 }
 
 export function excelLetter(index: number): string {
@@ -162,11 +210,11 @@ function detectNested(list: unknown[]): boolean {
   return false;
 }
 
-function childList(row: Record<string, unknown>): unknown[] | null {
+function childList(row: Record<string, unknown>): { key: string; list: unknown[] } | null {
   for (const k of CHILD_KEYS) {
     const v = row[k];
     if (Array.isArray(v) && v.length && v.some((x) => x && typeof x === "object" && !Array.isArray(x))) {
-      return v;
+      return { key: k, list: v };
     }
   }
   return null;
@@ -216,6 +264,7 @@ function flattenNested(list: unknown[]): { rows: Record<string, unknown>[]; tree
   const rows: Record<string, unknown>[] = [];
   const parentArr: number[] = [];
   const depths: number[] = [];
+  const childKeyArr: (string | null)[] = [];
 
   const walk = (node: unknown, parent: number, depth: number) => {
     if (!node || typeof node !== "object" || Array.isArray(node)) return;
@@ -230,7 +279,8 @@ function flattenNested(list: unknown[]): { rows: Record<string, unknown>[]; tree
     rows.push(copy);
     parentArr.push(parent);
     depths.push(depth);
-    if (kids) for (const child of kids) walk(child, idx, depth + 1);
+    childKeyArr.push(kids?.key ?? null);
+    if (kids) for (const child of kids.list) walk(child, idx, depth + 1);
   };
 
   for (const node of list) walk(node, -1, 0);
@@ -245,7 +295,7 @@ function flattenNested(list: unknown[]): { rows: Record<string, unknown>[]; tree
     const p = parentArr[i]!;
     if (p >= 0) children[p]!.push(i);
   }
-  return { rows, tree: { parent, children, depths: depthOut } };
+  return { rows, tree: { parent, children, depths: depthOut, childKey: childKeyArr } };
 }
 
 function finishBind(
@@ -254,12 +304,13 @@ function finishBind(
   kind: "matrix" | "object" | "empty",
   tree: BoundTree | null,
   objectKeyList?: string[],
+  strictColumns = false,
 ): BoundGrid {
   const dataKeys =
     kind === "matrix"
       ? Array.from({ length: matrixWidthFromRows(sourceRows) }, (_, i) => excelLetter(i))
       : (objectKeyList ?? objectKeys(sourceRows));
-  const plan = planColumns(defs, dataKeys, kind);
+  const plan = planColumns(defs, dataKeys, kind, strictColumns);
   const columns = plan.map((p, i) => toColumnDef(p.def, p.field, p.header, i, p.letter));
   const rows = projectRows(sourceRows, plan);
   return { columns, rows, tree, row: null };
@@ -273,7 +324,12 @@ interface ColPlan {
   letter: boolean;
 }
 
-function planColumns(defs: EasyColumn[], dataKeys: string[], kind: "matrix" | "object" | "empty"): ColPlan[] {
+function planColumns(
+  defs: EasyColumn[],
+  dataKeys: string[],
+  kind: "matrix" | "object" | "empty",
+  strictColumns = false,
+): ColPlan[] {
   const usedData = new Set<string>();
   const usedFields = new Set<string>();
   const plan: ColPlan[] = [];
@@ -312,7 +368,7 @@ function planColumns(defs: EasyColumn[], dataKeys: string[], kind: "matrix" | "o
       const field = takeField(key, excelLetter(plan.length));
       plan.push({ def: {}, field, header: prettify(key), sourceKey: key, letter: false });
     }
-  } else {
+  } else if (!strictColumns) {
     let extraIndex = defs.length;
     for (const key of dataKeys) {
       if (usedData.has(key)) continue;
@@ -391,10 +447,60 @@ function toColumnDef(def: EasyColumn, field: string, header: string, _index: num
     hide: !vis.grid,
     detailVisible: vis.detail,
     detailTemplate: emptyToUndef(def.detail_template) ?? emptyToUndef(def.detailTemplate) ?? emptyToUndef(def.template),
-    filter: filterable === false ? false : filter ?? (letterCol ? "text" : undefined),
+    filter: filterable === false ? false : filter ?? (def.icons?.length ? "set" : letterCol ? "text" : undefined),
     agg: def.agg ?? def.aggregation,
     align: def.align,
     format: def.format,
+    cellStyle: def.cellStyle ?? def.cell_style,
+    icons: normalizeIcons(def.icons),
+  };
+}
+
+function normalizeIcons(raw: EasyColumn["icons"]): ColumnIcon[] | undefined {
+  if (!Array.isArray(raw) || !raw.length) return undefined;
+  return raw.map(normalizeIcon);
+}
+
+function normalizeIcon(raw: ColumnIcon | EasyIcon): ColumnIcon {
+  const r = raw as EasyIcon & ColumnIcon;
+  const action = r.action ? normalizeAction(r.action) : undefined;
+  const urlField = emptyToUndef(r.urlField) ?? emptyToUndef(r.url_field);
+  const visibleIf = emptyToUndef(r.visibleIf) ?? emptyToUndef(r.visible_if);
+  const className = emptyToUndef(r.className) ?? emptyToUndef(r.class_name);
+  return {
+    id: r.id,
+    url: r.url,
+    urlField,
+    className,
+    label: r.label,
+    color: r.color,
+    background: r.background,
+    title: r.title,
+    placement: r.placement,
+    eq: r.eq,
+    in: r.in,
+    visibleIf,
+    visible: r.visible,
+    action,
+  };
+}
+
+function normalizeAction(raw: IconAction | EasyIconAction): IconAction {
+  const a = raw as EasyIconAction & IconAction;
+  const url = a.url;
+  const run = a.run;
+  const type = a.type ?? (run && !url ? "callback" : "link");
+  return {
+    type,
+    url,
+    target: a.target,
+    method: a.method,
+    headers: a.headers,
+    includeRow: a.includeRow ?? a.include_row,
+    includeChildren: a.includeChildren ?? a.include_children,
+    template: a.template,
+    title: a.title,
+    run,
   };
 }
 

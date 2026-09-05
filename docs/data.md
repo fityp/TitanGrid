@@ -20,7 +20,7 @@ TitanGrid.create(document.getElementById("host")!, payload);
 api.setPayload(payload);
 ```
 
-`city` is extra data, so it becomes column **C** (Excel letter for index 2).
+`city` is extra data, so it becomes column **C** (Excel letter for index 2). Pass `strictColumns: true` on `TitanGrid.create` (or the second argument of `bindPayload`) to keep only the defined columns.
 
 ## Defaults
 
@@ -29,7 +29,7 @@ api.setPayload(payload);
 | No `column_definitions` + object rows | Keys become columns. `athlete` → heading **Athlete**. Sorting and filtering on. |
 | No `column_definitions` + arrays | Columns **A**, **B**, **C**, … |
 | More headings than data | Extra headings show, cells blank. |
-| More data than headings | Extra columns named **A**, **B**, **C** by index. |
+| More data than headings | Extra columns named **A**, **B**, **C** by index. `strictColumns: true` skips this. |
 | Nested `children` / `items` / `rows` | Flattened to a tree. Click the first column to expand. |
 | Missing `field` on a heading | Bound by position, or the heading text is used as the field. |
 
@@ -56,6 +56,8 @@ Use these names (camelCase aliases work too):
 | `visibility` | `all` `grid` `detail` `none` — grid and/or row modal | `all` |
 | `detail_visible` | Show in the row-detail modal | `true` |
 | `detail_template` | HTML for this field in the modal. `{{value}}`, `{{heading}}`, and other field names work. Values are escaped. | plain text |
+| `icons` | Array of cell icons (`url`, `url_field`, `label`, `eq`, `in`, `visible_if`, `placement`, `action`). Distinct icons are distinct filter/group values. | — |
+| `cell_style` / `cellStyle` | `{ color, background, pill }` or a function of `(value, sourceIndex)`. Canvas-only; not JSON. | — |
 | `agg` | `sum` `avg` `min` `max` `count` when grouped | — |
 
 Optional `row_definition` (alongside the two payload fields) lays out the whole modal:

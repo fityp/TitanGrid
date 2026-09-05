@@ -37,6 +37,30 @@ describe("bindPayload", () => {
     expect(bound.columns[0]!.filter).toBe("text");
   });
 
+  it("drops leftover keys when strictColumns is set", () => {
+    const bound = bindPayload(
+      {
+        column_definitions: [{ heading: "Name", field: "name" }],
+        table_data: [{ name: "Ada", gold: 3, city: "Paris" }],
+      },
+      { strictColumns: true },
+    );
+    expect(bound.columns.map((c) => c.header)).toEqual(["Name"]);
+    expect(bound.rows[0]).toEqual({ name: "Ada", gold: 3, city: "Paris" });
+  });
+
+  it("trims matrix extras when strictColumns is set", () => {
+    const bound = bindPayload(
+      {
+        column_definitions: [{ heading: "Name" }],
+        table_data: [["Ada", 3, "Paris"]],
+      },
+      { strictColumns: true },
+    );
+    expect(bound.columns.map((c) => c.header)).toEqual(["Name"]);
+    expect(bound.rows[0]).toEqual({ A: "Ada" });
+  });
+
   it("keeps extra headings with empty cells when defs outnumber data", () => {
     const bound = bindPayload({
       column_definitions: [

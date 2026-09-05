@@ -1,6 +1,7 @@
 import { TitanGrid, type ColumnDef, type GridApi, type GridOptions } from "titangrid";
 import "titangrid/styles.css";
 import { generateRows } from "./data.ts";
+import { countryFlagUrl, ICON_INFO, ICON_LINK } from "./flags.ts";
 import { generateMegaDataset, type MegaDataset } from "./mega.ts";
 import { SAMPLES, extraData } from "./payloads.ts";
 import "./style.css";
@@ -115,10 +116,10 @@ app.innerHTML = `
       </section>
       <section>
         <h2>Column filters</h2>
-        <p class="pg-copy">Every column filter, live on this grid. Country is a set multi-select dropdown — tick values in the floating row. Sport is a multi filter (text + set tabs in the funnel).</p>
+        <p class="pg-copy">Every column filter, live on this grid. Country is a set multi-select with flag icons — the icon is part of the cell, so a second Canada flag shows as its own value. Sport is a multi filter (text + set tabs in the funnel).</p>
         <ul class="pg-legend">
           <li><b>Athlete</b> text</li>
-          <li><b>Country</b> set (multi-select)</li>
+          <li><b>Country</b> set (icons in the list)</li>
           <li><b>Sport</b> multi</li>
           <li><b>Age / Gold</b> number</li>
           <li><b>Date</b> date</li>
@@ -170,7 +171,7 @@ let grid: TitanGrid | undefined;
 const columns: ColumnDef[] = [
   { field: "athlete", header: "Athlete", width: 170, pinned: "left" as const, groupable: false, filter: "text" },
   { field: "age", header: "Age", type: "number" as const, width: 88, agg: "avg" as const, filter: "number" },
-  { field: "country", header: "Country", width: 176, filter: "set" },
+  { field: "country", header: "Country", width: 176, filter: "set", icons: [{ url: countryFlagUrl, title: "{{value}}" }] },
   { field: "year", header: "Year", type: "number" as const, width: 88, filter: "number" },
   { field: "date", header: "Date", type: "date", width: 124, filter: "date" },
   { field: "sport", header: "Sport", width: 148, filter: "multi" },
@@ -187,6 +188,33 @@ const columns: ColumnDef[] = [
     format: (v) => (v == null ? "" : v ? "Yes" : "No"),
   },
   { field: "trend", header: "Form", type: "sparkline" as const, width: 130, sortable: false, filterable: false, editable: false, groupable: false },
+  {
+    field: "actions",
+    header: "",
+    width: 64,
+    sortable: false,
+    filterable: false,
+    editable: false,
+    groupable: false,
+    resizable: false,
+    icons: [
+      {
+        url: ICON_INFO,
+        title: "Open record",
+        placement: "before",
+        action: {
+          type: "modal",
+          title: "{{athlete}}",
+          template: "<p><strong>{{country}}</strong> · {{sport}}</p><p>Gold {{gold}} · Age {{age}}</p>",
+        },
+      },
+      {
+        url: ICON_LINK,
+        title: "Open Wikipedia",
+        action: { type: "link", url: "https://en.wikipedia.org/wiki/{{country}}" },
+      },
+    ],
+  },
 ];
 
 for (const q of QUERIES) {

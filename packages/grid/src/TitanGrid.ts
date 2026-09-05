@@ -3,13 +3,19 @@ import {
   bindRowDefinition,
   defaultQuerySpec,
   formatDate,
+  hasIcons,
   ingest,
+  interpolatePlain,
   isFilterActive,
   isGridPayload,
   QueryEngine,
   renderTemplate,
+  resolveChildInclude,
+  resolveIcons,
+  rowWithChildren,
   simpleFilterToModel,
   type BoundTree,
+  type ChildInclude,
   type ColumnDef,
   type ColumnFilter,
   type ColumnFilterModel,
@@ -17,6 +23,7 @@ import {
   type Field,
   type FilterModel,
   type QuerySpec,
+  type ResolvedIcon,
   type RowDef,
 } from "@titangrid/core";
 import { exportCsv, selectionToTsv } from "./clipboard.ts";
@@ -29,6 +36,8 @@ import {
   setFloatLabel,
 } from "./filter/floating.ts";
 import { FilterPopup } from "./filter/popup.ts";
+import { IconImageCache } from "./icon-cache.ts";
+import { iconAtPoint, layoutCellIcons } from "./icon-layout.ts";
 import { ColumnLayout, ROW_NUMBER_FIELD } from "./layout.ts";
 import { renderFrame } from "./render.ts";
 import { SelectionModel } from "./selection.ts";
@@ -57,6 +66,7 @@ export class TitanGrid {
 
   private queryInput!: HTMLInputElement;
   private queryError!: HTMLElement;
+  private searchInput!: HTMLInputElement;
   private groupBar!: HTMLElement;
   private headerEl!: HTMLElement;
   private filterEl!: HTMLElement;
@@ -72,8 +82,9 @@ export class TitanGrid {
   private detailEl!: HTMLElement;
   private detailTitle!: HTMLElement;
   private detailBody!: HTMLElement;
-  private pendingClick: { row: number; col: number; x: number; y: number } | null = null;
+  private pendingClick: { row: number; col: number; x: number; y: number; icon?: ResolvedIcon } | null = null;
   private rowDef: RowDef | null = null;
+  private readonly iconCache: IconImageCache;
   private onDocKey = (e: KeyboardEvent) => {
     if (e.key === "Escape") this.closeRowDetail();
   };
@@ -90,6 +101,7 @@ export class TitanGrid {
     this.theme = options.theme === "light" ? lightTheme : darkTheme;
     this.spec.groupBy = [...(options.groupBy ?? [])];
     this.spec.expression = options.query ?? null;
+    this.iconCache = new IconImageCache(() => this.scheduleDraw());
 
     this.root = document.createElement("div");
     this.root.className = `tg-root${this.theme.name === "light" ? " tg-light" : ""}`;
@@ -116,6 +128,7 @@ export class TitanGrid {
       setGroupBy: (fields) => this.setGroupBy(fields),
       setQuickFilter: (text) => {
         this.spec.quickFilter = text;
+        this.searchInput.value = text;
         this.recompute();
       },
       setExpression: (expr) => {
@@ -151,7 +164,7 @@ export class TitanGrid {
       },
       getDisplayedRowCount: () => this.engine.displayedCount(),
       getSourceRowCount: () => this.engine.getStore()?.rowCount ?? 0,
-      getRow: (sourceIndex) => this.engine.getStore()?.getRow(sourceIndex) ?? null,
+      getRow: (sourceIndex, options) => this.readRow(sourceIndex, options?.children),
       getStats: () => this.engine.stats(),
       copySelection: () => this.copy(),
       exportCsv: () => {
@@ -171,6 +184,10 @@ export class TitanGrid {
         <label>Query</label>
         <input class="tg-query-input" spellcheck="false" placeholder='gold > 2 && contains(country, "USA")' />
         <div class="tg-query-error"></div>
+      </div>
+      <div class="tg-search-bar">
+        <label>Search</label>
+        <input class="tg-search-input" spellcheck="false" placeholder="Filter rows…" />
       </div>
       <div class="tg-group-bar"></div>
       <div class="tg-header"></div>
@@ -193,6 +210,7 @@ export class TitanGrid {
     `;
     this.queryInput = this.root.querySelector(".tg-query-input")!;
     this.queryError = this.root.querySelector(".tg-query-error")!;
+    this.searchInput = this.root.querySelector(".tg-search-input")!;
     this.groupBar = this.root.querySelector(".tg-group-bar")!;
     this.headerEl = this.root.querySelector(".tg-header")!;
     this.filterEl = this.root.querySelector(".tg-filters")!;
@@ -205,6 +223,9 @@ export class TitanGrid {
     this.detailTitle = this.root.querySelector("#tg-detail-title")!;
     this.detailBody = this.root.querySelector(".tg-detail-body")!;
     if (!this.filterHeight) this.filterEl.style.display = "none";
+    if (this.options.queryBar === false) this.root.querySelector(".tg-query-bar")?.classList.add("tg-hidden");
+    if (this.options.groupBar === false) this.groupBar.classList.add("tg-hidden");
+    if (this.options.searchBar) this.root.querySelector(".tg-search-bar")?.classList.add("tg-search-on");
     if (this.spec.expression) this.queryInput.value = this.spec.expression;
   }
 
@@ -218,6 +239,11 @@ export class TitanGrid {
     this.root.addEventListener("keydown", (e) => this.onKey(e));
     this.queryInput.addEventListener("input", () => this.onQueryInput());
     this.queryInput.addEventListener("keydown", (e) => e.stopPropagation());
+    this.searchInput.addEventListener("input", () => {
+      this.spec.quickFilter = this.searchInput.value;
+      this.recompute();
+    });
+    this.searchInput.addEventListener("keydown", (e) => e.stopPropagation());
     this.groupBar.addEventListener("dragover", (e) => e.preventDefault());
     this.groupBar.addEventListener("drop", (e) => {
       e.preventDefault();
@@ -273,7 +299,7 @@ export class TitanGrid {
   }
 
   private loadFromOptions(input: unknown): void {
-    const bound = bindPayload(input);
+    const bound = bindPayload(input, this.bindOpts());
     this.tree = bound.tree;
     this.rowDef = bound.row ?? bindRowDefinition(this.options.row_definition ?? this.options.rowDefinition);
     this.setColumns(bound.columns.length ? bound.columns : (this.options.columns ?? []));
@@ -298,6 +324,7 @@ export class TitanGrid {
           agg: c.agg,
           align: c.align,
           format: c.format,
+          cellStyle: c.cellStyle,
           enable_sorting: c.sortable,
           enable_filtering: c.filterable,
           enable_editing: c.editable,
@@ -306,12 +333,17 @@ export class TitanGrid {
           hide: c.hide,
           detail_visible: c.detailVisible,
           detail_template: c.detailTemplate,
+          icons: c.icons,
         })),
       table_data: rows,
-    });
+    }, this.bindOpts());
     this.tree = bound.tree;
     this.setColumns(bound.columns);
     this.applyRows(bound.rows);
+  }
+
+  private bindOpts() {
+    return { strictColumns: this.options.strictColumns === true };
   }
 
   private applyRows(rows: Record<string, unknown>[]): void {
@@ -395,6 +427,7 @@ export class TitanGrid {
       selection: this.selection,
       hoverRow: this.hoverRow,
       theme: this.theme,
+      icons: this.iconCache,
     });
     this.syncHeaderScroll();
   }
@@ -662,8 +695,9 @@ export class TitanGrid {
         return;
       }
     }
-    this.pendingClick = { row: hit.row, col: hit.col, x: e.clientX, y: e.clientY };
-    this.dragging = true;
+    const icon = this.iconAtEvent(e, hit);
+    this.pendingClick = { row: hit.row, col: hit.col, x: e.clientX, y: e.clientY, icon: icon ?? undefined };
+    this.dragging = !icon?.def.action;
     this.selection.setFocus(hit.row, hit.col, e.shiftKey);
     this.scrollEl.setPointerCapture(e.pointerId);
     this.updateStatus();
@@ -686,12 +720,14 @@ export class TitanGrid {
       this.hoverRow = nextHover;
       this.scheduleDraw();
     }
+    const actionable = hit ? this.iconAtEvent(e, hit) : null;
+    this.scrollEl.style.cursor = actionable?.def.action ? "pointer" : "";
     if (this.dragging && hit) {
       this.selection.dragTo(hit.row, hit.col);
       this.updateStatus();
       this.scheduleDraw();
     }
-    if (this.pendingClick && (Math.abs(e.clientX - this.pendingClick.x) > 5 || Math.abs(e.clientY - this.pendingClick.y) > 5)) {
+    if (this.pendingClick && !this.pendingClick.icon && (Math.abs(e.clientX - this.pendingClick.x) > 5 || Math.abs(e.clientY - this.pendingClick.y) > 5)) {
       this.pendingClick = null;
     }
   }
@@ -711,7 +747,12 @@ export class TitanGrid {
     this.dragging = false;
     this.resizing = null;
     this.pendingClick = null;
-    if (click) this.handleRowClick(click.row, click.col);
+    if (!click) return;
+    if (click.icon?.def.action) {
+      void this.runIconAction(click.row, click.col, click.icon);
+      return;
+    }
+    this.handleRowClick(click.row, click.col);
   };
 
   private handleRowClick(displayIndex: number, colIndex: number): void {
@@ -732,22 +773,136 @@ export class TitanGrid {
     if (this.options.rowDetail) this.openRowDetail(event.data, display.kind);
   }
 
-  private openRowDetail(data: Record<string, unknown>, kind: "leaf" | "group"): void {
+  private readRow(sourceIndex: number, children?: boolean | ChildInclude): Record<string, unknown> | null {
+    const store = this.engine.getStore();
+    if (!store) return null;
+    if (!children) return store.getRow(sourceIndex);
+    const include = children === true ? "subtree" : children;
+    return rowWithChildren(store, this.tree, sourceIndex, include);
+  }
+
+  private iconAtEvent(e: PointerEvent | MouseEvent, hit: { row: number; col: number }): ResolvedIcon | null {
+    const col = this.layout.all[hit.col];
+    const store = this.engine.getStore();
+    const sourceIndex = this.engine.sourceIndexAt(hit.row);
+    if (!col || !store || sourceIndex == null || !hasIcons(col.def) || col.def.field === ROW_NUMBER_FIELD) return null;
+    const display = this.engine.displayRowAt(hit.row);
+    if (!display || (display.kind === "group" && display.sourceIndex == null)) return null;
+    const icons = resolveIcons(store, col.def, sourceIndex);
+    if (!icons.length) return null;
+    const raw = store.get(col.def.field, sourceIndex);
+    const text = col.def.format ? col.def.format(raw, sourceIndex) : raw == null ? "" : String(raw);
+    const ctx = this.canvas.getContext("2d");
+    if (ctx) ctx.font = `${this.theme.fontSize}px ${this.theme.font}`;
+    const textWidth = ctx && text ? ctx.measureText(String(text)).width : String(text ?? "").length * this.theme.fontSize * 0.55;
+    const cellX = this.layout.xForColumn(col, this.scrollEl.scrollLeft, this.scrollEl.clientWidth);
+    const cellY = hit.row * this.rowHeight - this.scrollEl.scrollTop;
+    const leafIndent =
+      display.kind === "leaf" && display.depth && col.index === this.layout.all.find((c) => c.def.field !== ROW_NUMBER_FIELD)?.index && col.align === "left"
+        ? display.depth * 16
+        : 0;
+    const layout = layoutCellIcons({
+      icons,
+      text: String(text ?? ""),
+      textWidth,
+      cellX,
+      cellWidth: col.width,
+      rowY: cellY,
+      rowHeight: this.rowHeight,
+      fontSize: this.theme.fontSize,
+      align: col.align,
+      indent: leafIndent,
+      pad: 10,
+      measure: ctx ? (s) => ctx.measureText(s).width : undefined,
+    });
+    const rect = this.scrollEl.getBoundingClientRect();
+    return iconAtPoint(layout.boxes, e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  private async runIconAction(displayIndex: number, colIndex: number, resolved: ResolvedIcon): Promise<void> {
+    const action = resolved.def.action;
+    const col = this.layout.all[colIndex];
+    const store = this.engine.getStore();
+    const sourceIndex = this.engine.sourceIndexAt(displayIndex);
+    if (!action || !col || !store || sourceIndex == null) return;
+    const value = store.get(col.def.field, sourceIndex);
+    const includeRow = action.includeRow !== false;
+    const includeChildren = resolveChildInclude(action.includeChildren, action.type === "http" && includeRow ? "subtree" : "none");
+    const data = includeRow
+      ? rowWithChildren(store, this.tree, sourceIndex, includeChildren)
+      : store.getRow(sourceIndex);
+    const get = (key: string): unknown => {
+      if (key === "value") return value;
+      if (key === "field") return col.def.field;
+      if (key === "heading" || key === "header") return col.def.header ?? col.def.field;
+      return data[key] ?? store.get(key, sourceIndex);
+    };
+    const url = action.url ? interpolatePlain(action.url, get) : "";
+    this.options.onIconAction?.({
+      field: col.def.field,
+      sourceIndex,
+      data,
+      value,
+      icon: resolved.def,
+      action,
+    });
+    await action.run?.({ row: data, sourceIndex, field: col.def.field, value, icon: resolved.def });
+    const kind = action.type ?? (action.run && !url ? "callback" : "link");
+    if (kind === "link" && url) {
+      const target = action.target ?? "_blank";
+      if (target === "_self") window.location.assign(url);
+      else window.open(url, target, "noopener,noreferrer");
+      return;
+    }
+    if (kind === "modal") {
+      const title = action.title ? interpolatePlain(action.title, get) : String(data[col.def.field] ?? "Row");
+      this.openRowDetail(data, "leaf", { title, template: action.template });
+      return;
+    }
+    if (kind === "http" && url) {
+      const method = (action.method ?? "POST").toUpperCase();
+      const headers: Record<string, string> = { ...(action.headers ?? {}) };
+      const init: RequestInit = { method, headers };
+      if (includeRow && method !== "GET" && method !== "HEAD") {
+        if (!headers["content-type"] && !headers["Content-Type"]) headers["content-type"] = "application/json";
+        init.body = JSON.stringify(data);
+      }
+      try {
+        await fetch(url, init);
+      } catch {
+        this.openRowDetail(data, "leaf", {
+          title: action.title ? interpolatePlain(action.title, get) : "Request failed",
+          template: "<p>The icon action could not reach the endpoint.</p>",
+        });
+      }
+    }
+  }
+
+  private openRowDetail(
+    data: Record<string, unknown>,
+    kind: "leaf" | "group",
+    opts?: { title?: string; template?: string },
+  ): void {
     const cols = this.columns.filter((c) => c.field !== ROW_NUMBER_FIELD && c.detailVisible !== false);
-    const titleTpl = this.rowDef?.titleTemplate;
-    if (titleTpl) {
-      this.detailTitle.innerHTML = renderTemplate(titleTpl, data) || (kind === "group" ? "Group" : "Row");
+    if (opts?.title) {
+      this.detailTitle.textContent = opts.title || (kind === "group" ? "Group" : "Row");
     } else {
-      const titleField = cols[0]?.field;
-      const title = titleField ? data[titleField] : null;
-      this.detailTitle.textContent = title == null || title === "" ? (kind === "group" ? "Group" : "Row") : String(title);
+      const titleTpl = this.rowDef?.titleTemplate;
+      if (titleTpl) {
+        this.detailTitle.innerHTML = renderTemplate(titleTpl, data) || (kind === "group" ? "Group" : "Row");
+      } else {
+        const titleField = cols[0]?.field;
+        const title = titleField ? data[titleField] : null;
+        this.detailTitle.textContent = title == null || title === "" ? (kind === "group" ? "Group" : "Row") : String(title);
+      }
     }
 
     this.detailBody.innerHTML = "";
-    if (this.rowDef?.template) {
+    const template = opts?.template ?? this.rowDef?.template;
+    if (template) {
       const wrap = document.createElement("div");
       wrap.className = "tg-detail-html";
-      wrap.innerHTML = renderTemplate(this.rowDef.template, data);
+      wrap.innerHTML = renderTemplate(template, { ...data, value: data.value });
       this.detailBody.appendChild(wrap);
       this.detailEl.hidden = false;
       return;
@@ -784,7 +939,9 @@ export class TitanGrid {
 
   private onDblClick(e: MouseEvent): void {
     const hit = this.hit(e);
-    if (hit) this.startEdit(hit.row, hit.col);
+    if (!hit) return;
+    if (this.iconAtEvent(e, hit)?.def.action) return;
+    this.startEdit(hit.row, hit.col);
   }
 
   private onKey(e: KeyboardEvent): void {

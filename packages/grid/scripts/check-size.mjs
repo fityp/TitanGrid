@@ -5,7 +5,7 @@ import { gzipSync } from "node:zlib";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const file = path.resolve(root, "../dist/index.js");
-const max = 30 * 1024;
+const max = 36 * 1024;
 const gz = gzipSync(readFileSync(file)).byteLength;
 if (gz > max) {
   console.error(`ESM gzip ${gz} bytes exceeds budget of ${max} bytes`);

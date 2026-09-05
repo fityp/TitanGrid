@@ -32,12 +32,14 @@ TitanGrid.create(document.getElementById("host")!, {
 });
 ```
 
+`city` becomes column **C**. Pass `strictColumns: true` to show only the defined columns. Hide the query/group bars with `queryBar: false` and `groupBar: false`. `searchBar: true` adds a simple filter box.
+
 ### HTML, no bundler
 
 ```html
 <div id="host" style="height: 80vh"></div>
 <script type="module">
-  import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.2.2/dist/titangrid.js";
+  import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.3.0/dist/titangrid.js";
 
   TitanGrid.create(document.getElementById("host"), {
     column_definitions: [/* … */],

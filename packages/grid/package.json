@@ -1,6 +1,6 @@
 {
   "name": "titangrid",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "High-performance canvas data grid",
   "license": "MIT",
   "type": "module",
@@ -36,7 +36,7 @@
     "test:watch": "vitest",
     "prepack": "node scripts/inject-readme.mjs",
     "postpack": "node scripts/strip-readme.mjs",
-    "check:package": "publint --pack npm && attw --pack . --profile esm-only --exclude-entrypoints styles.css package.json && node scripts/check-size.mjs"
+    "check:package": "publint --pack npm && attw --pack . --profile esm-only --exclude-entrypoints styles.css package.json && node scripts/check-size.mjs && node scripts/check-dts.mjs"
   },
   "repository": {
     "type": "git",

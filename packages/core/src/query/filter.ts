@@ -13,7 +13,8 @@ import {
   type TextFilterModel,
 } from "../filter-model.ts";
 import { BLANK_CODE, parseDate, type ColumnStore } from "../store.ts";
-import type { ColumnFilter, Field } from "../types.ts";
+import type { ColumnDef, ColumnFilter, Field } from "../types.ts";
+import { contentKeys, hasIcons, isContentKey } from "../icons.ts";
 
 export type RowPredicate = (row: number) => boolean;
 
@@ -24,11 +25,12 @@ export function applyFilters(
   exprPred: RowPredicate | null,
   source?: Uint32Array,
   filterModel?: FilterModel,
+  columns?: ColumnDef[],
 ): Uint32Array {
   const model = resolveFilterModel(filterModel, filters);
   const preds: RowPredicate[] = [];
   for (const field of Object.keys(model)) {
-    const compiled = compileColumnFilter(store, field, model[field]!);
+    const compiled = compileColumnFilter(store, field, model[field]!, columnByField(columns, field));
     if (compiled) preds.push(compiled);
   }
   const q = quickFilter.trim().toLowerCase();
@@ -67,16 +69,17 @@ export function compileColumnFilter(
   store: ColumnStore,
   field: Field,
   model: ColumnFilterModel | null | undefined,
+  def?: ColumnDef,
 ): RowPredicate | null {
   if (!isFilterActive(model) || !model) return null;
   if (model.filterType === "multi") {
     const parts = model.filterModels
-      .map((m) => compileColumnFilter(store, field, m))
+      .map((m) => compileColumnFilter(store, field, m, def))
       .filter((p): p is RowPredicate => p != null);
     if (!parts.length) return null;
     return andPreds(parts);
   }
-  if (model.filterType === "set") return compileSet(store, field, model);
+  if (model.filterType === "set") return compileSet(store, field, model, def);
   if (isCombinedModel(model)) {
     const parts = combinedConditions(model as CombinedFilterModel<SimpleFilterModel>)
       .map((c) => compileSimple(store, field, c))
@@ -218,12 +221,24 @@ function compileDate(store: ColumnStore, field: Field, model: DateFilterModel): 
   });
 }
 
-function compileSet(store: ColumnStore, field: Field, model: SetFilterModel): RowPredicate {
+function compileSet(store: ColumnStore, field: Field, model: SetFilterModel, def?: ColumnDef): RowPredicate {
   const selected = new Set<string>();
   let includeBlank = false;
   for (const v of model.values) {
     if (v == null || v === "") includeBlank = true;
     else selected.add(String(v));
+  }
+
+  if (def && hasIcons(def)) {
+    const keys = contentKeys(store, def);
+    const byContentKey = model.values.some((v) => isContentKey(v));
+    if (byContentKey) {
+      return (row) => {
+        const key = keys[row] ?? "";
+        if (!key) return includeBlank;
+        return selected.has(key);
+      };
+    }
   }
 
   const vec = store.vector(field);
@@ -293,4 +308,12 @@ function orPreds(preds: RowPredicate[]): RowPredicate {
     for (let i = 0; i < preds.length; i++) if (preds[i]!(row)) return true;
     return false;
   };
+}
+
+function columnByField(columns: ColumnDef[] | undefined, field: Field): ColumnDef | undefined {
+  if (!columns) return undefined;
+  for (let i = 0; i < columns.length; i++) {
+    if (columns[i]!.field === field) return columns[i];
+  }
+  return undefined;
 }

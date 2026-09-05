@@ -116,6 +116,7 @@ export class QueryEngine {
       exprPred,
       undefined,
       spec.filterModel,
+      this.columns,
     );
     const filterMs = now() - tFilter;
 

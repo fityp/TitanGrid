@@ -1,5 +1,6 @@
 import type { ColumnStore } from "../store.ts";
 import type { AggName, ColumnDef, DisplayRow, Field, GroupRow } from "../types.ts";
+import { contentKeyAt, hasIcons, parseContentKey } from "../icons.ts";
 
 const SEP = "\u001f";
 
@@ -23,21 +24,23 @@ export function applyGroup(
     let path = "";
     for (let g = 0; g < groupBy.length; g++) {
       const field = groupBy[g] as Field;
-      const key = store.getString(field, row) || "(blank)";
-      path = path ? path + SEP + key : key;
-      let node = level.get(key);
+      const col = columns.find((c) => c.field === field);
+      const { idPart, key, icons } = groupIdentity(store, col, field, row);
+      path = path ? path + SEP + idPart : idPart;
+      let node = level.get(idPart);
       if (!node) {
         node = {
           id: path,
           field,
           key,
+          icons,
           depth: g,
           count: 0,
           children: g === groupBy.length - 1 ? null : new Map(),
           leaves: g === groupBy.length - 1 ? [] : null,
           aggs: allocAggs(aggCols),
         };
-        level.set(key, node);
+        level.set(idPart, node);
       }
       node.count++;
       accumulate(store, row, aggCols, node.aggs);
@@ -73,6 +76,7 @@ interface Node {
   id: string;
   field: Field;
   key: string;
+  icons?: string[];
   depth: number;
   count: number;
   children: Map<string, Node> | null;
@@ -155,6 +159,7 @@ function flatten(
       count: node.count,
       expanded: isExpanded,
       aggregates,
+      icons: node.icons,
     });
     if (!isExpanded) continue;
     if (node.children) {
@@ -179,4 +184,24 @@ export function collectGroupIds(rows: DisplayRow[]): string[] {
     if (row.kind === "group") ids.push(row.id);
   }
   return ids;
+}
+
+function groupIdentity(
+  store: ColumnStore,
+  col: ColumnDef | undefined,
+  field: Field,
+  row: number,
+): { idPart: string; key: string; icons?: string[] } {
+  if (col && hasIcons(col)) {
+    const content = contentKeyAt(store, col, row);
+    if (!content) return { idPart: "(blank)", key: "(blank)" };
+    const parsed = parseContentKey(content);
+    return {
+      idPart: content,
+      key: parsed.text || "(icon)",
+      icons: parsed.urls.length ? parsed.urls : undefined,
+    };
+  }
+  const key = store.getString(field, row) || "(blank)";
+  return { idPart: key, key };
 }
