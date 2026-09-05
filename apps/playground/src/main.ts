@@ -93,7 +93,7 @@ app.innerHTML = `
     <aside class="pg-side">
       <section>
         <h2>Easy payload</h2>
-        <p class="pg-copy">Send <b>column_definitions</b> and <b>table_data</b>. Extra data becomes C, D, E. Extra headings stay blank. Nested <b>children</b> become a tree. Click a row for the detail modal — columns can hide from the grid and still show there with HTML templates.</p>
+        <p class="pg-copy">Send <b>column_definitions</b> and <b>table_data</b> as two fields. Extra data becomes C, D, E. A named column whose field is missing on the row stays blank. Extra headings stay blank. Nested <b>children</b> become a tree. Click a row for the detail modal — columns can hide from the grid and still show there with HTML templates.</p>
         <div class="pg-actions" id="payload-samples"></div>
         <textarea class="pg-json" id="payload-json" spellcheck="false"></textarea>
         <div class="pg-actions" style="margin-top:8px">
@@ -311,7 +311,7 @@ function reload(n: number, regen: boolean) {
   );
 }
 
-function loadPayload(payload: unknown, label: string) {
+function loadPayload(payload: unknown, label: string, extra: Record<string, unknown> = {}) {
   mode = "payload";
   document.querySelector("#mega-set")?.classList.remove("on");
   jsonError.textContent = "";
@@ -322,8 +322,8 @@ function loadPayload(payload: unknown, label: string) {
   }
   document.querySelectorAll("#sizes button").forEach((b) => b.classList.remove("on"));
   const options: GridOptions = Array.isArray(payload)
-    ? { table_data: payload }
-    : { ...(payload as GridOptions) };
+    ? { table_data: payload, ...extra }
+    : { ...(payload as GridOptions), ...extra };
   createGrid(options, (stats) => `
         <span>${label}</span>
         <span>ingest ${stats.ingestMs.toFixed(0)}ms</span>
@@ -338,7 +338,7 @@ for (const sample of SAMPLES) {
   b.textContent = sample.label;
   b.addEventListener("click", () => {
     sampleBox.querySelectorAll("button").forEach((el) => el.classList.toggle("on", el === b));
-    loadPayload(sample.payload, sample.label);
+    loadPayload(sample.payload, sample.label, "options" in sample ? { ...sample.options } : {});
   });
   sampleBox.appendChild(b);
 }

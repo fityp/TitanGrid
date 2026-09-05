@@ -145,6 +145,21 @@ describe("TitanGrid", () => {
     expect(api.getRow(0)).toEqual({ name: "Ada" });
   });
 
+  it("setData replaces rows without changing column defs or stealing extra keys", () => {
+    const mounted = mount({
+      column_definitions: [
+        { heading: "Name", field: "name" },
+        { heading: "", field: "actions", enable_filtering: false },
+      ],
+      table_data: [{ name: "Ada" }],
+    });
+    api = mounted.api;
+    host = mounted.host;
+    api.setData([{ name: "Tom", city: "Rome" }]);
+    expect(api.getSourceRowCount()).toBe(1);
+    expect(api.getRow(0)).toEqual({ name: "Tom", actions: null, C: "Rome" });
+  });
+
   it("search bar input applies a quick filter", () => {
     const mounted = mount({ ...payload, searchBar: true });
     api = mounted.api;

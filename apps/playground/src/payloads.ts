@@ -161,12 +161,7 @@ export const iconFlags = {
   ],
 };
 
-export const adminTable = {
-  queryBar: false,
-  groupBar: false,
-  searchBar: true,
-  strictColumns: true,
-  defaultColDef: { editable: false },
+export const adminPayload = {
   column_definitions: [
     { heading: "Name", field: "name", filter_type: "text" as const },
     {
@@ -212,12 +207,32 @@ export const adminTable = {
   ],
 };
 
+export const adminChrome = {
+  queryBar: false,
+  groupBar: false,
+  searchBar: true,
+  strictColumns: true,
+  defaultColDef: { editable: false },
+};
+
+export const missingField = {
+  column_definitions: [
+    { heading: "Name", field: "name", filter_type: "text" as const },
+    { heading: "Actions", field: "actions", enable_filtering: false, enable_sorting: false },
+  ],
+  table_data: [
+    { name: "Ada Lovelace", city: "Paris" },
+    { name: "Tom Hughes", city: "Rome" },
+  ],
+};
+
 export const SAMPLES = [
   { id: "extra-data", label: "Extra data → C, D", payload: extraData },
   { id: "extra-headings", label: "Extra headings", payload: extraHeadings },
+  { id: "missing-field", label: "Missing field + extra C", payload: missingField },
   { id: "nested", label: "Nested rows", payload: nestedRows },
   { id: "icons", label: "Icons in cells", payload: iconFlags },
-  { id: "admin", label: "Admin chrome", payload: adminTable },
+  { id: "admin", label: "Admin chrome", payload: adminPayload, options: adminChrome },
   { id: "matrix", label: "Array rows → A, B, C", payload: matrix },
   { id: "objects", label: "Objects, no defs", payload: objectsOnly },
   { id: "detail", label: "Detail HTML", payload: detailHtml },

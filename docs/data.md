@@ -1,6 +1,6 @@
 # Easy payload
 
-Your service returns two fields. TitanGrid binds them with defaults — no mapping layer required.
+Your service returns **column definitions** and **table data** as two separate fields. Definitions describe the grid. Rows are the records. TitanGrid binds them with defaults — no mapping layer required.
 
 ```json
 {
@@ -17,10 +17,32 @@ Your service returns two fields. TitanGrid binds them with defaults — no mappi
 
 ```ts
 TitanGrid.create(document.getElementById("host")!, payload);
-api.setPayload(payload);
+api.setPayload(payload); // replace definitions + rows
+api.setData(rows);       // replace rows only; keep current columns
 ```
 
-`city` is extra data, so it becomes column **C** (Excel letter for index 2). Pass `strictColumns: true` on `TitanGrid.create` (or the second argument of `bindPayload`) to keep only the defined columns.
+`city` is extra data, so it becomes column **C**. Pass `strictColumns: true` on `TitanGrid.create` (or the second argument of `bindPayload`) to keep only the defined columns.
+
+Chrome, theme, and callbacks (`queryBar`, `searchBar`, `onIconAction`, …) are **create options**, not part of the service payload. They stay put when you `setPayload` / `setData`.
+
+## Definitions vs data
+
+A named `field` is a key lookup on each row, not a positional slot.
+
+| Row has… | Column def has… | Result |
+| --- | --- | --- |
+| `name` | `{ field: "name" }` | Cell shows `name` |
+| `city`, no matching def | — | Extra column **C** (unless `strictColumns`) |
+| no `actions` key | `{ field: "actions" }` | **Actions** column exists, cells blank |
+| extra heading, no `field` | `{ heading: "Notes" }` | Bound by position to the next unused key, or blank |
+
+So `{ field: "actions" }` plus `{ name: "Ada", city: "Paris" }` is **Name**, **Actions** (empty), **C** (`Paris`) — not Paris stuffed into Actions.
+
+Display (`format`, `cellStyle`, `icons`, `label`, `action`) lives on the column. Values live on `table_data`. `url_field: "logoUrl"` names a data key; the URL itself is on the row.
+
+JS-only (not JSON): `format`, `cellStyle`, `url` / `label` / `visible` functions, `action.run`.
+
+Reserved row keys `children`, `items`, and `rows` (arrays of objects) become a nested tree — not extra columns.
 
 ## Defaults
 
@@ -30,8 +52,9 @@ api.setPayload(payload);
 | No `column_definitions` + arrays | Columns **A**, **B**, **C**, … |
 | More headings than data | Extra headings show, cells blank. |
 | More data than headings | Extra columns named **A**, **B**, **C** by index. `strictColumns: true` skips this. |
+| Named `field` missing on the row | That column is blank. Leftover keys still become extra letter columns. |
 | Nested `children` / `items` / `rows` | Flattened to a tree. Click the first column to expand. |
-| Missing `field` on a heading | Bound by position, or the heading text is used as the field. |
+| Missing `field` on a heading | Bound by position to the next unused key, or the heading text is used as the field. |
 
 This is one pass over the rows, then the same typed-array ingest as before. 250k rows stay in the millisecond range.
 
@@ -42,7 +65,7 @@ Use these names (camelCase aliases work too):
 | Field | Meaning | Default |
 | --- | --- | --- |
 | `heading` | Header text (`header`, `title`, `name` also work) | prettified `field` |
-| `field` | Key on each row (`key`, `id` also work) | matched by index, or a letter |
+| `field` | Key on each row (`key`, `id` also work). Missing keys are blank; leftover keys become extra columns. | matched by index, or a letter |
 | `type` | `string` `number` `boolean` `date` `sparkline` | inferred |
 | `enable_sorting` | Click header to sort | `true` |
 | `enable_filtering` | Funnel + floating filter | `true` |
@@ -100,7 +123,7 @@ The live demo is a static page: [https://fityp.github.io/TitanGrid/](https://fit
 
 To put TitanGrid on your own page, install `titangrid` or import a versioned jsDelivr URL. See the [README](../README.md#use-it-in-your-project).
 
-See [Define columns](columns.md) for the full engine `ColumnDef` if you need `format` functions.
+See [Define columns](columns.md) for `format`, `cellStyle`, icons, and labeled actions.
 
 ## Row detail
 
