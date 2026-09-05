@@ -49,6 +49,19 @@ describe("bindPayload", () => {
     expect(bound.rows[0]).toEqual({ name: "Ada", gold: 3, city: "Paris" });
   });
 
+  it("does not bind leftover object keys onto a named column that is missing from the row", () => {
+    const bound = bindPayload({
+      column_definitions: [
+        { heading: "Name", field: "name" },
+        { heading: "", field: "actions", enable_filtering: false },
+      ],
+      table_data: [{ name: "Ada", city: "Paris" }],
+    });
+    expect(bound.columns.map((c) => c.field)).toEqual(["name", "actions", "C"]);
+    expect(bound.columns.map((c) => c.header)).toEqual(["Name", "Actions", "C"]);
+    expect(bound.rows[0]).toEqual({ name: "Ada", actions: null, C: "Paris" });
+  });
+
   it("trims matrix extras when strictColumns is set", () => {
     const bound = bindPayload(
       {

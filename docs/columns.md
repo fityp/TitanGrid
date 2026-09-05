@@ -41,7 +41,7 @@ TitanGrid.create(host, {
 { field: "country" }  // reads row.country
 ```
 
-There is no `valueGetter` and no `"user.address.city"` path. Nested **rows** (`children` arrays) are inferred — see [Load data](data.md). Nested **fields** on one row should be flattened by your service or will show as extra letter columns if they are extra keys.
+There is no `valueGetter` and no `"user.address.city"` path. Nested **rows** (`children` arrays) are inferred — see [Load data](data.md). Nested **fields** on one row should be flattened by your service, or they show as extra letter columns. A named `field` that is not on the row stays blank; it does not absorb leftover keys.
 
 ---
 
@@ -141,7 +141,20 @@ Set `filter` yourself when you want a specific UI:
 }
 ```
 
-The set filter still uses `true` / `false`, not `"Yes"` / `"No"`.
+The set filter still uses `true` / `false`, not `"Yes"` / `"No"`. `cellStyle` is the same split: stored value in, paint color out.
+
+```ts
+{
+  field: "isLocked",
+  type: "boolean",
+  filter: "set",
+  format: (value) => (value ? "Locked" : "Open"),
+  cellStyle: (value) =>
+    value
+      ? { color: "#fecaca", background: "#7f1d1d", pill: true }
+      : { color: "#bbf7d0", background: "#14532d", pill: true },
+}
+```
 
 ```ts
 {
@@ -177,11 +190,12 @@ Only columns with `agg` show an aggregate on the group row.
 
 ## Grid-level options that affect columns
 
-Passed next to `columns` on `TitanGrid.create`:
+Passed next to `columns` on `TitanGrid.create`. These are **not** service-payload fields.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `defaultColDef` | `{}` | Defaults merged under every column. |
+| `defaultColDef` | `{}` | Defaults merged under every column. Set `editable: false` for read-only tables. |
+| `strictColumns` | `false` | Ignore leftover row keys instead of adding A, B, C columns. |
 | `floatingFilters` | `true` | Set `false` to hide the filter row. |
 | `rowNumbers` | `true` | Inserts a `#` column on the left. Not in your data. |
 | `rowHeight` | `28` | Pixel height of body rows. |
@@ -189,6 +203,24 @@ Passed next to `columns` on `TitanGrid.create`:
 | `theme` | `"dark"` | `"dark"` \| `"light"` |
 | `groupBy` | `[]` | Initial grouped fields. |
 | `query` | — | Initial expression (`gold > 2 && contains(country, "China")`). |
+| `queryBar` | `true` | Expression query input. Set `false` to hide it. |
+| `groupBar` | `true` | Drag-to-group bar. Set `false` to hide it. |
+| `searchBar` | `false` | Simple search box bound to `api.setQuickFilter`. |
+| `rowDetail` | `false` | Open the row modal on click. |
+
+```ts
+TitanGrid.create(host, {
+  strictColumns: true,
+  queryBar: false,
+  groupBar: false,
+  searchBar: true,
+  defaultColDef: { editable: false },
+  column_definitions: [/* … */],
+  table_data: rows,
+});
+```
+
+`api.setData(rows)` replaces **rows only**. `api.setPayload(payload)` replaces `column_definitions` + `table_data` (and optional `row_definition`). Chrome options from `create` do not change.
 
 ---
 
@@ -205,6 +237,8 @@ api.setFilterModel({
 api.setExpression('gold > 2 && contains(country, "United States")');
 api.setQuickFilter("swim"); // contains across all string-like columns
 ```
+
+`onIconAction` on `create` fires for every icon click, in addition to `action.run`.
 
 Expression language: identifiers (column `field`s), numbers, strings, `true` / `false` / `null`, `== != > < >= <= && || !`, `+ - * /`, parentheses, `contains(field, "x")`, `startsWith(field, "x")`, `empty(field)`.
 
@@ -293,37 +327,10 @@ Each icon may have an `action`. Clicking it does not open the row-detail modal.
 
 ---
 
-## Grid chrome
-
-These are `TitanGrid.create` options, not column fields.
-
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `strictColumns` | `false` | Ignore leftover row keys instead of adding A, B, C columns. |
-| `queryBar` | `true` | Expression query input. Set `false` to hide it. |
-| `groupBar` | `true` | Drag-to-group bar. Set `false` to hide it. |
-| `searchBar` | `false` | Simple search box bound to `api.setQuickFilter`. |
-| `theme` | `"dark"` | `"dark"` or `"light"`. |
-| `defaultColDef` | — | Merged under every column. Set `editable: false` for read-only admin tables. |
-
-```ts
-TitanGrid.create(host, {
-  strictColumns: true,
-  queryBar: false,
-  groupBar: false,
-  searchBar: true,
-  defaultColDef: { editable: false },
-  column_definitions: [/* … */],
-  table_data: rows,
-});
-```
-
----
-
 ## Checklist
 
 1. One `ColumnDef` per column you want to show (or hide).
-2. `field` equals the key you will put on each mapped row.
+2. `field` equals the key on each row. If the key is missing, that column is blank; leftover keys become extra letter columns.
 3. Set `type: "date"` for dates. Set `type: "number"` for numeric filters and aggregations.
 4. Set `filter` when the default is not what you want (`"set"` for a multi-select list, `"text"` for contains-only).
 5. Map incoming records so those keys exist — [Load and map data](data.md).

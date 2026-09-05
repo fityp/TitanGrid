@@ -345,10 +345,14 @@ function planColumns(
     const def = defs[i]!;
     const named = pickField(def);
     let sourceKey: string | null = null;
-    if (named && dataKeys.includes(named) && !usedData.has(named)) {
+    if (named && kind === "object") {
+      // Named object fields stay on that key. Missing keys are blank — never steal leftover data.
+      sourceKey = named;
+      if (dataKeys.includes(named)) usedData.add(named);
+    } else if (named && dataKeys.includes(named) && !usedData.has(named)) {
       sourceKey = named;
       usedData.add(named);
-    } else {
+    } else if (!named || kind !== "object") {
       const next = dataKeys.find((k) => !usedData.has(k));
       if (next) {
         sourceKey = next;

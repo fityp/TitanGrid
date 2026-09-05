@@ -6,7 +6,7 @@
 
 [Support on Ko-fi](https://ko-fi.com/fityp)
 
-A high-performance JavaScript data grid. You send **column definitions** and **table data**. TitanGrid fills in the rest, packs columns into typed arrays, and paints the viewport to canvas.
+A high-performance JavaScript data grid. You send **column definitions** and **table data** as two fields. TitanGrid fills in the rest, packs columns into typed arrays, and paints the viewport to canvas.
 
 **[Live demo](https://fityp.github.io/TitanGrid/)** · **[GitHub](https://github.com/fityp/TitanGrid)**
 
@@ -32,14 +32,14 @@ TitanGrid.create(document.getElementById("host")!, {
 });
 ```
 
-`city` becomes column **C**. Pass `strictColumns: true` to show only the defined columns. Hide the query/group bars with `queryBar: false` and `groupBar: false`. `searchBar: true` adds a simple filter box.
+`city` becomes column **C**. A named column whose `field` is not on the row stays blank — leftover keys do not fill it. Pass `strictColumns: true` to show only the defined columns. Hide the query/group bars with `queryBar: false` and `groupBar: false`. `searchBar: true` adds a simple filter box.
 
 ### HTML, no bundler
 
 ```html
 <div id="host" style="height: 80vh"></div>
 <script type="module">
-  import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.3.0/dist/titangrid.js";
+  import { TitanGrid } from "https://cdn.jsdelivr.net/npm/titangrid@0.3.1/dist/titangrid.js";
 
   TitanGrid.create(document.getElementById("host"), {
     column_definitions: [/* … */],
@@ -50,10 +50,11 @@ TitanGrid.create(document.getElementById("host")!, {
 
 ## Usage
 
-- Extra data (`city`) becomes column **C**.
+- Extra data (`city`) becomes column **C**. A named `field` missing from the row stays blank.
 - Extra headings with no data still show, with blank cells.
 - No definitions: object keys become columns, or arrays become **A**, **B**, **C**.
 - Nested `children` become an expandable tree.
+- `api.setData(rows)` replaces rows; `api.setPayload(payload)` replaces definitions and rows.
 
 **[Load data](docs/data.md)** · **[Column fields](docs/columns.md)**
 
