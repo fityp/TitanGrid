@@ -1,13 +1,14 @@
 import {
+  contentLabel,
   defaultFilterKind,
   isFilterActive,
+  type ColumnDef,
   type ColumnFilterModel,
   type FilterKind,
   type MultiFilterModel,
   type NumberFilterModel,
   type SetFilterModel,
 } from "@titangrid/core";
-import type { ColumnDef } from "@titangrid/core";
 
 export function kindForColumn(def: ColumnDef): FilterKind {
   if (def.filterable === false) return "none";
@@ -97,7 +98,7 @@ export function booleanFloatValue(model: ColumnFilterModel | undefined): "" | "t
 
 function formatSetValues(model: SetFilterModel): string {
   if (!model.values.length) return "(None)";
-  const labels = model.values.map((v) => (v == null ? "(Blanks)" : String(v)));
+  const labels = model.values.map((v) => (v == null ? "(Blanks)" : contentLabel(v)));
   if (labels.length <= 2) return labels.join(", ");
   return `${labels.length} selected`;
 }

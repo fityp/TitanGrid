@@ -1,4 +1,4 @@
-import type { BoundTree, ColumnDef, ColumnFilter, ColumnStore, EasyColumn, EasyRow, Field, FilterModel, QueryStats, Sort } from "@titangrid/core";
+import type { BoundTree, ChildInclude, ColumnDef, ColumnFilter, ColumnIcon, ColumnStore, EasyColumn, EasyRow, Field, FilterModel, IconAction, QueryStats, Sort } from "@titangrid/core";
 
 export interface GridOptions {
   columns?: ColumnDef[];
@@ -19,9 +19,18 @@ export interface GridOptions {
   theme?: "dark" | "light";
   defaultColDef?: Partial<ColumnDef>;
   query?: string;
+  /** When column definitions are present, do not auto-add leftover row keys as A, B, C. Default false. */
+  strictColumns?: boolean;
+  /** Expression query bar. Default true. */
+  queryBar?: boolean;
+  /** Drag-to-group bar. Default true. */
+  groupBar?: boolean;
+  /** Simple search box bound to `api.setQuickFilter`. Default false. */
+  searchBar?: boolean;
   onReady?: (api: GridApi) => void;
   onCellValueChanged?: (event: CellValueChangedEvent) => void;
   onRowClicked?: (event: RowClickedEvent) => void;
+  onIconAction?: (event: IconActionEvent) => void;
   onStats?: (stats: QueryStats) => void;
 }
 
@@ -31,6 +40,15 @@ export interface RowClickedEvent {
   field: Field;
   data: Record<string, unknown>;
   kind: "leaf" | "group";
+}
+
+export interface IconActionEvent {
+  field: Field;
+  sourceIndex: number;
+  data: Record<string, unknown>;
+  value: unknown;
+  icon: ColumnIcon;
+  action: IconAction;
 }
 
 export interface CellValueChangedEvent {
@@ -66,7 +84,7 @@ export interface GridApi {
   collapseAll(): void;
   getDisplayedRowCount(): number;
   getSourceRowCount(): number;
-  getRow(sourceIndex: number): Record<string, unknown> | null;
+  getRow(sourceIndex: number, options?: { children?: boolean | ChildInclude }): Record<string, unknown> | null;
   getStats(): QueryStats;
   copySelection(): string;
   exportCsv(): string;

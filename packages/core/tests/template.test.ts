@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderTemplate, escapeHtml } from "../src/template.ts";
+import { renderTemplate, escapeHtml, interpolatePlain } from "../src/template.ts";
 
 describe("renderTemplate", () => {
   it("interpolates tokens and escapes HTML in values", () => {
@@ -7,7 +7,7 @@ describe("renderTemplate", () => {
     expect(escapeHtml("<x>")).toBe("&lt;x&gt;");
   });
 
-  it("treats missing tokens as empty", () => {
-    expect(renderTemplate("{{a}}-{{b}}", { a: "1" })).toBe("1-");
+  it("interpolates without escaping for URLs", () => {
+    expect(interpolatePlain("https://x.test/{{name}}", (k) => (k === "name" ? "a b" : ""))).toBe("https://x.test/a b");
   });
 });

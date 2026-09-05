@@ -104,4 +104,54 @@ describe("TitanGrid", () => {
     expect(api.getDisplayedRowCount()).toBe(1);
     expect(api.getRow(1)).toMatchObject({ name: "Tom", score: 74 });
   });
+
+  it("getRow can include nested children", () => {
+    const mounted = mount({
+      column_definitions: [{ heading: "Name", field: "name" }],
+      table_data: [{ name: "Americas", children: [{ name: "USA" }] }],
+    });
+    api = mounted.api;
+    host = mounted.host;
+    expect(api.getRow(0)).toMatchObject({ name: "Americas" });
+    expect(api.getRow(0)?.children).toBeUndefined();
+    expect(api.getRow(0, { children: true })).toMatchObject({
+      name: "Americas",
+      children: [{ name: "USA" }],
+    });
+  });
+
+  it("hides query and group chrome and shows the search bar", () => {
+    const mounted = mount({
+      ...payload,
+      queryBar: false,
+      groupBar: false,
+      searchBar: true,
+    });
+    api = mounted.api;
+    host = mounted.host;
+    expect(mounted.root.querySelector(".tg-query-bar")?.classList.contains("tg-hidden")).toBe(true);
+    expect(mounted.root.querySelector(".tg-group-bar")?.classList.contains("tg-hidden")).toBe(true);
+    expect(mounted.root.querySelector(".tg-search-bar")?.classList.contains("tg-search-on")).toBe(true);
+  });
+
+  it("keeps defined columns only when strictColumns is set", () => {
+    const mounted = mount({
+      column_definitions: [{ heading: "Name", field: "name" }],
+      table_data: [{ name: "Ada", city: "Paris" }],
+      strictColumns: true,
+    });
+    api = mounted.api;
+    host = mounted.host;
+    expect(api.getRow(0)).toEqual({ name: "Ada" });
+  });
+
+  it("search bar input applies a quick filter", () => {
+    const mounted = mount({ ...payload, searchBar: true });
+    api = mounted.api;
+    host = mounted.host;
+    const input = mounted.root.querySelector(".tg-search-input") as HTMLInputElement;
+    input.value = "Tom";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(api.getDisplayedRowCount()).toBe(1);
+  });
 });

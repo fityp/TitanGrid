@@ -1,5 +1,7 @@
-import type { ColumnStore, DisplayRow, QueryEngine } from "@titangrid/core";
-import { formatDate } from "@titangrid/core";
+import type { CellStyle, ColumnDef, ColumnStore, DisplayRow, QueryEngine, ResolvedIcon } from "@titangrid/core";
+import { formatDate, hasIcons, resolveIcons } from "@titangrid/core";
+import type { IconImageCache } from "./icon-cache.ts";
+import { layoutCellIcons } from "./icon-layout.ts";
 import type { ColumnLayout, LaidOutColumn } from "./layout.ts";
 import { ROW_NUMBER_FIELD } from "./layout.ts";
 import type { SelectionModel } from "./selection.ts";
@@ -21,6 +23,7 @@ export interface RenderFrame {
   selection: SelectionModel;
   hoverRow: number;
   theme: Theme;
+  icons?: IconImageCache;
 }
 
 export function renderFrame(frame: RenderFrame): void {
@@ -150,14 +153,7 @@ function paintColumn(
         const text = col.def.format
           ? col.def.format(raw, display.sourceIndex)
           : formatValue(raw, col);
-        ctx.fillStyle = theme.text;
-        ctx.textAlign = col.align;
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x + 2, y, col.width - 4, rowHeight);
-        ctx.clip();
-        ctx.fillText(text, textX(x, col.width, pad, col.align), cy);
-        ctx.restore();
+        paintCell(frame, col, x, y, text, display.sourceIndex, 0);
       } else if (display.aggregates[field] != null) {
         ctx.fillStyle = theme.text;
         ctx.textAlign = col.align;
@@ -177,18 +173,11 @@ function paintColumn(
     const text = col.def.format
       ? col.def.format(raw, display.sourceIndex)
       : formatValue(raw, col);
-    ctx.fillStyle = theme.text;
-    ctx.textAlign = col.align;
     const leafIndent =
       display.depth && col.index === firstDataColIndex(frame.layout) && col.align === "left"
         ? display.depth * 16
         : 0;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(x + 2, y, col.width - 4, rowHeight);
-    ctx.clip();
-    ctx.fillText(text, textX(x, col.width, pad, col.align) + leafIndent, cy);
-    ctx.restore();
+    paintCell(frame, col, x, y, text, display.sourceIndex, leafIndent);
   }
 }
 
@@ -221,12 +210,153 @@ function drawGroupLabel(
   }
   ctx.closePath();
   ctx.fill();
+  const label = `${display.key}  (${display.count.toLocaleString()})`;
+  const iconStart = x + indent + 12;
+  let textXPos = iconStart;
+  if (display.icons?.length && frame.icons) {
+    const size = Math.max(8, Math.round(theme.fontSize));
+    for (let i = 0; i < display.icons.length; i++) {
+      const img = frame.icons.get(display.icons[i]!);
+      if (img) drawContained(ctx, img, textXPos, y + (rowHeight - size) / 2, size);
+      textXPos += size + 4;
+    }
+  }
   ctx.fillStyle = theme.text;
   ctx.textAlign = "left";
   ctx.font = `600 ${theme.fontSize}px ${theme.headerFont}`;
-  ctx.fillText(`${display.key}  (${display.count.toLocaleString()})`, x + indent + 12, cy);
+  ctx.fillText(label, textXPos, cy);
   ctx.font = `${theme.fontSize}px ${theme.font}`;
   void width;
+}
+
+function paintCell(
+  frame: RenderFrame,
+  col: LaidOutColumn,
+  x: number,
+  y: number,
+  text: string,
+  sourceIndex: number,
+  indent: number,
+): void {
+  const { ctx, theme, rowHeight, store } = frame;
+  const pad = 10;
+  const raw = store.get(col.def.field, sourceIndex);
+  const style = resolveCellStyle(col.def.cellStyle, raw, sourceIndex);
+  const icons: ResolvedIcon[] = hasIcons(col.def) ? resolveIcons(store, col.def, sourceIndex) : [];
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x + 2, y, col.width - 4, rowHeight);
+  ctx.clip();
+  if (style?.background && !style.pill) {
+    ctx.fillStyle = style.background;
+    ctx.fillRect(x, y, col.width, rowHeight);
+  }
+  ctx.fillStyle = style?.color || theme.text;
+  ctx.textAlign = "left";
+  if (!icons.length) {
+    const cy = y + rowHeight / 2;
+    if (style?.pill && text) {
+      const w = ctx.measureText(text).width;
+      const tx = textX(x, col.width, pad, col.align) + indent;
+      const left = col.align === "right" ? tx - w : col.align === "center" ? tx - w / 2 : tx;
+      drawPill(ctx, left - 6, y + 4, w + 12, rowHeight - 8, style.background || theme.selectionFill);
+      ctx.fillStyle = style.color || theme.text;
+    }
+    ctx.textAlign = col.align;
+    ctx.fillText(text, textX(x, col.width, pad, col.align) + indent, cy);
+    ctx.restore();
+    return;
+  }
+  const textWidth = text ? ctx.measureText(text).width : 0;
+  const layout = layoutCellIcons({
+    icons,
+    text,
+    textWidth,
+    cellX: x,
+    cellWidth: col.width,
+    rowY: y,
+    rowHeight,
+    fontSize: theme.fontSize,
+    align: col.align,
+    indent,
+    pad,
+    measure: (s) => ctx.measureText(s).width,
+  });
+  for (const box of layout.boxes) drawIconBox(frame, box);
+  if (layout.showText) {
+    if (style?.pill && text) {
+      const w = textWidth;
+      drawPill(ctx, layout.textX - 6, y + 4, w + 12, rowHeight - 8, style.background || theme.selectionFill);
+      ctx.fillStyle = style.color || theme.text;
+    }
+    ctx.fillText(text, layout.textX, y + rowHeight / 2);
+  }
+  ctx.restore();
+}
+
+function drawIconBox(frame: RenderFrame, box: { icon: ResolvedIcon; x: number; y: number; width: number; height: number }): void {
+  const { ctx, theme } = frame;
+  const { icon, x, y, width, height } = box;
+  if (icon.label) {
+    drawPill(ctx, x, y, width, height, icon.background || theme.accent);
+    let contentX = x + 8;
+    if (icon.url && frame.icons) {
+      const img = frame.icons.get(icon.url);
+      const size = Math.max(8, Math.round(theme.fontSize));
+      if (img) drawContained(ctx, img, contentX, y + (height - size) / 2, size);
+      contentX += size + 4;
+    }
+    ctx.fillStyle = icon.color || "#fff";
+    ctx.textAlign = "left";
+    ctx.fillText(icon.label, contentX, y + height / 2);
+    return;
+  }
+  if (!icon.url || !frame.icons) return;
+  const img = frame.icons.get(icon.url);
+  if (img) drawContained(ctx, img, x, y, Math.min(width, height));
+}
+
+function drawPill(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  fill: string,
+): void {
+  const r = Math.min(8, h / 2);
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, w, h, r);
+  else ctx.rect(x, y, w, h);
+  ctx.fill();
+}
+
+function resolveCellStyle(
+  spec: ColumnDef["cellStyle"],
+  value: unknown,
+  sourceIndex: number,
+): CellStyle | undefined {
+  if (!spec) return undefined;
+  if (typeof spec === "function") return spec(value, sourceIndex) ?? undefined;
+  return spec;
+}
+
+function drawContained(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  size: number,
+): void {
+  const nw = img.naturalWidth || size;
+  const nh = img.naturalHeight || size;
+  const r = nw / nh;
+  let w = size;
+  let h = size;
+  if (r > 1) h = size / r;
+  else w = size * r;
+  ctx.drawImage(img, x + (size - w) / 2, y + (size - h) / 2, w, h);
 }
 
 function textX(x: number, width: number, pad: number, align: LaidOutColumn["align"]): number {

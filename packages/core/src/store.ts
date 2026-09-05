@@ -20,16 +20,36 @@ export interface UniqueValue {
   value: string | number | boolean | null;
   label: string;
   count: number;
+  /** Image URLs when this unique value is cell content that includes icons. */
+  icons?: string[];
+  iconClass?: string;
 }
 
 const EMPTY = "";
 
-export class ColumnStore {
+export interface ColumnStore {
+  readonly rowCount: number;
+  readonly fields: readonly Field[];
+  readonly types: ReadonlyMap<Field, DataType>;
+  readonly generation: number;
+  vector(field: Field): Vector | undefined;
+  get(field: Field, row: number): unknown;
+  getNumber(field: Field, row: number): number;
+  getString(field: Field, row: number): string;
+  isBlank(field: Field, row: number): boolean;
+  set(field: Field, row: number, value: unknown): void;
+  uniqueStrings(field: Field, limit?: number): string[];
+  uniqueValues(field: Field): UniqueValue[];
+  getRow(row: number): Record<string, unknown>;
+}
+
+class ColumnStoreImpl implements ColumnStore {
   readonly rowCount: number;
   readonly fields: readonly Field[];
   readonly types: ReadonlyMap<Field, DataType>;
   private readonly vectors: Map<Field, Vector>;
   private uniqueCache = new Map<Field, UniqueValue[]>();
+  private _generation = 0;
 
   constructor(
     rowCount: number,
@@ -41,6 +61,10 @@ export class ColumnStore {
     this.fields = fields;
     this.types = types;
     this.vectors = vectors;
+  }
+
+  get generation(): number {
+    return this._generation;
   }
 
   vector(field: Field): Vector | undefined {
@@ -129,6 +153,7 @@ export class ColumnStore {
   set(field: Field, row: number, value: unknown): void {
     const vec = this.vectors.get(field);
     if (!vec) return;
+    this._generation++;
     this.uniqueCache.delete(field);
     switch (vec.kind) {
       case "number":
@@ -379,7 +404,7 @@ export function ingest(
     }
   }
 
-  return new ColumnStore(n, fields, types, vectors);
+  return new ColumnStoreImpl(n, fields, types, vectors);
 }
 
 /** Build a store from pre-packed column vectors (no row-object pass). */
@@ -394,7 +419,7 @@ export function createColumnStore(
     types.set(col.field, col.type);
     vectors.set(col.field, col.vector);
   }
-  return new ColumnStore(rowCount, fields, types, vectors);
+  return new ColumnStoreImpl(rowCount, fields, types, vectors);
 }
 
 export function stringVector(rowCount: number, valueAt: (row: number) => string | null): Vector {

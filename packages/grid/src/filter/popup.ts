@@ -5,6 +5,7 @@ import {
   needsValueInput,
   NUMBER_OPTIONS,
   TEXT_OPTIONS,
+  uniqueCellValues,
   type ColumnDef,
   type ColumnFilterModel,
   type ColumnStore,
@@ -273,9 +274,9 @@ export class FilterPopup {
     onChange: (model: SetFilterModel | null) => void,
   ): void {
     const store = this.store;
-    const field = this.field;
-    if (!store) return;
-    const uniques = store.uniqueValues(field);
+    const def = this.def;
+    if (!store || !def) return;
+    const uniques = uniqueCellValues(store, def);
     const allKeys = uniques.map(valueKey);
     const selected = new Set<string>();
     if (model) {
@@ -347,7 +348,9 @@ export class FilterPopup {
         const count = document.createElement("span");
         count.className = "tg-set-count";
         count.textContent = String(u.count);
-        row.append(box, document.createTextNode(` ${u.label}`), count);
+        row.append(box);
+        appendUniqueVisual(row, u);
+        row.append(document.createTextNode(` ${u.label}`), count);
         itemsWrap.appendChild(row);
       }
       if (items.length > max) {
@@ -454,6 +457,23 @@ function normalizeMulti(multi: MultiFilterModel): ColumnFilterModel | null {
 
 function valueKey(u: UniqueValue): string {
   return u.value == null ? "__blank__" : String(u.value);
+}
+
+function appendUniqueVisual(row: HTMLElement, u: UniqueValue): void {
+  if (u.icons?.length) {
+    for (const src of u.icons) {
+      if (!src) continue;
+      const img = document.createElement("img");
+      img.className = "tg-set-icon";
+      img.src = src;
+      img.alt = "";
+      row.appendChild(img);
+    }
+  } else if (u.iconClass) {
+    const mark = document.createElement("span");
+    mark.className = `tg-set-icon-font ${u.iconClass}`;
+    row.appendChild(mark);
+  }
 }
 
 function el(tag: string, className: string): HTMLElement {

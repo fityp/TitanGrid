@@ -68,6 +68,8 @@ There is no `valueGetter` and no `"user.address.city"` path. Nested **rows** (`c
 | `agg` | `"sum"` \| `"avg"` \| `"min"` \| `"max"` \| `"count"` \| `"first"` \| `"last"` | — | Value shown on group rows when grouping. |
 | `align` | `"left"` \| `"center"` \| `"right"` | `"left"` | Cell text alignment. |
 | `format` | `(value, sourceIndex) => string` | built-in | Display only. Does **not** change stored values or filters. |
+| `cellStyle` | `{ color, background, pill }` or `(value, sourceIndex) => CellStyle` | — | Canvas fill and text color. `pill: true` paints a rounded chip around the formatted text. |
+| `icons` | `ColumnIcon[]` | — | Icons and labeled chips painted as **cell content** (see below). Distinct resolved icons are distinct filter and group values. |
 
 ---
 
@@ -205,6 +207,116 @@ api.setQuickFilter("swim"); // contains across all string-like columns
 ```
 
 Expression language: identifiers (column `field`s), numbers, strings, `true` / `false` / `null`, `== != > < >= <= && || !`, `+ - * /`, parentheses, `contains(field, "x")`, `startsWith(field, "x")`, `empty(field)`.
+
+---
+
+## Icons
+
+Icons are part of the cell, not decoration. Filters and grouping key off the **resolved cell** (icon identity + text). Same label with two different URLs is two values — like two different countries.
+
+```ts
+{
+  field: "country",
+  filter: "set",
+  icons: [
+    { url: "/flags/brazil.svg", eq: "Brazil" },
+    { urlField: "flagUrl" }, // per-row URL on the record
+    {
+      url: (value, sourceIndex) => value === "Canada" && sourceIndex % 23 === 0 ? ALT : MAP[String(value)],
+      title: "{{value}}",
+    },
+  ],
+}
+```
+
+JSON / easy payload uses `url`, `url_field`, `label`, `color`, `background`, `eq`, `in`, `visible_if`, and `action`. JS `ColumnDef` may also use `url` / `label` / `visible` functions and `action.run`.
+
+Painted at the cell font size, vertically centered. `placement`: `"before"` (default), `"after"`, or `"replace"` (hide the text).
+
+Set / multi filters show the same glyphs next to each unique value. Group-by uses the same identity. Sort still uses the stored/label text.
+
+A column with no dataset field can still list `icons` (action buttons). Turn filtering and grouping off unless you want those icons treated as cell content.
+
+`label` paints a chip. No image URL is required — that is how you get **Edit** / **Lock** text buttons.
+
+```ts
+{
+  field: "actions",
+  filterable: false,
+  sortable: false,
+  editable: false,
+  groupable: false,
+  icons: [
+    { label: "Edit", action: { type: "callback", run: (ctx) => edit(ctx.row.id) } },
+    { label: "Lock", visibleIf: "isLocked == false", background: "#334155", action: { type: "callback", run: (ctx) => toggle(ctx.row.id) } },
+    { label: "Unlock", visibleIf: "isLocked == true", background: "#334155", action: { type: "callback", run: (ctx) => toggle(ctx.row.id) } },
+  ],
+}
+```
+
+### Actions
+
+Each icon may have an `action`. Clicking it does not open the row-detail modal.
+
+| `type` | What it does |
+| --- | --- |
+| `"link"` | Opens `url` (`{{field}}` interpolated). `target` defaults to `"_blank"`. |
+| `"http"` | `fetch`. Default `POST` with `Content-Type: application/json`. Body is the row, including nested `children` / `items` / `rows` unless you set `include_row` / `include_children`. |
+| `"modal"` | Opens the detail overlay with `title` and HTML `template`. |
+| `"callback"` | JS only. `run` and/or grid `onIconAction`. Default when `run` is set and there is no `url`. |
+
+```ts
+{
+  field: "actions",
+  filterable: false,
+  sortable: false,
+  editable: false,
+  groupable: false,
+  icons: [
+    {
+      url: "/icons/open.svg",
+      placement: "replace",
+      visibleIf: "active == true",
+      action: {
+        type: "http",
+        method: "POST",
+        url: "/api/rows/{{id}}",
+        includeRow: true,
+        includeChildren: "subtree",
+      },
+    },
+  ],
+}
+```
+
+`includeChildren`: `true` / `"subtree"` (default for http), `"direct"`, or `false` / `"none"`. `api.getRow(i, { children: true })` returns the same nested object.
+
+---
+
+## Grid chrome
+
+These are `TitanGrid.create` options, not column fields.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `strictColumns` | `false` | Ignore leftover row keys instead of adding A, B, C columns. |
+| `queryBar` | `true` | Expression query input. Set `false` to hide it. |
+| `groupBar` | `true` | Drag-to-group bar. Set `false` to hide it. |
+| `searchBar` | `false` | Simple search box bound to `api.setQuickFilter`. |
+| `theme` | `"dark"` | `"dark"` or `"light"`. |
+| `defaultColDef` | — | Merged under every column. Set `editable: false` for read-only admin tables. |
+
+```ts
+TitanGrid.create(host, {
+  strictColumns: true,
+  queryBar: false,
+  groupBar: false,
+  searchBar: true,
+  defaultColDef: { editable: false },
+  column_definitions: [/* … */],
+  table_data: rows,
+});
+```
 
 ---
 
